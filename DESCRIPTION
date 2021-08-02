@@ -1,0 +1,29 @@
+Type: Package
+Package: refineR
+Version: 1.0.0
+Date: 2021-07-29
+Title: Reference Interval Estimation using Real-World Data
+Author: Tatjana Ammer [aut, cre],
+  Christopher M Rank [aut],
+  Andre Schuetzenmeister [aut]
+Maintainer: Tatjana Ammer <tatjana.ammer@roche.com>
+Authors@R: c(
+	person(given ="Tatjana", family ="Ammer", email ="tatjana.ammer@roche.com", role =c("aut", "cre")),
+	person(given ="Christopher M", family = "Rank", email ="christopher.rank@roche.com", role ="aut"),
+	person(given ="Andre", family ="Schuetzenmeister", email ="andre.schuetzenmeister@roche.com", role ="aut"))
+Depends: R (>= 3.2.0)
+Imports: stats, ash, future, future.apply, parallel, graphics,
+        grDevices
+Description: Indirect method for the estimation of reference intervals using Real-World Data ('RWD'). It takes routine measurements 
+	of diagnostic tests, containing pathological and non-pathological samples as input and uses sophisticated
+	statistical methods to derive a model describing the distribution of the non-pathological samples. This distribution can then be 
+	used to derive reference intervals. 
+	Furthermore, the package offers functions for printing and plotting the results of the algorithm. 
+	The method is described in detail in Ammer T., Schuetzenmeister A., Prokosch H.-U., Rauh M., Rank C.M., Zierk J. "refineR: A Novel Algorithm for Reference Interval Estimation from Real-World Data". Scientific Reports (2021) [accepted July 21, 2021].
+License: GPL (>= 3)
+NeedsCompilation: no
+LazyData: true
+RoxygenNote: 7.1.0
+Packaged: 2021-07-29 14:22:53 UTC; ammert
+Repository: CRAN
+Date/Publication: 2021-08-02 08:10:02 UTC

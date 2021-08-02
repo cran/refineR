@@ -1,0 +1,36 @@
+### Generics and functions defined in this package
+
+export(	
+	"print.RWDRI",
+	"plot.RWDRI",
+	"getRI",
+	"findRI", 
+	"BoxCox",
+	"invBoxCox"
+)
+
+
+### Packages which are imported (appearing in the Description->Imports enumeration)
+
+import( 
+	"stats",
+	"ash",
+	"future",
+	"future.apply",
+	"parallel", 
+	"graphics", 
+	"grDevices"
+)
+
+importFrom("utils", packageVersion)
+importFrom("utils", "capture.output")
+
+
+### exported classes
+
+exportClasses(
+	"RWDRI"
+)
+
+S3method(print, RWDRI)
+S3method(plot, RWDRI)
