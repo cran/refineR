@@ -1,15 +1,18 @@
 #' Standard plot method for objects of class 'RWDRI'
 #' 
 #' @param x				(object) of class 'RWDRI'
-#' @param Scale			(character) specifying if the plot is generated on the original scale ("Or") or the transformed scale ("Tr")
-#' @param RIperc		(numeric) value specifying the percentiles, which define the reference interval
+#' @param Scale			(character) specifying if the plot is generated on the original scale ("original") or the transformed scale ("transformed")
+#' @param RIperc		(numeric) value specifying the percentiles, which define the reference interval (default c(0.025, 0.975))
 #' @param Nhist			(integer) number of bins in the histogram (derived automatically if not set)
 #' @param showCI		(logical) specifying if the confidence intervals are shown
 #' @param showPathol	(logical) specifying if the estimated pathological distribution shall be shown
+#' @param scalePathol	(logical) specifying if the estimated pathological distribution shall be weighted with the ration of pathol/non-pathol
+#' @param showBSModels	(logical) specifying if the estimated bootstrapping models shall be shown
 #' @param showValue		(logical) specifying if the exact value of the estimated reference intervals shall be shown above the plot 
 #' @param CIprop		(numeric) value specifying the central region for estimation of confidence intervals
 #' @param pointEst		(character) specifying the point estimate determination: (1) using the full dataset ("fullDataEst"),
-#' 						(2) calculating the median from the bootstrap samples ("medianBS"), (2) works only if NBootstrap > 0
+#' 						(2) calculating the median from the bootstrap samples ("medianBS"), (2) works only if NBootstrap > 0,
+#' 						(3) calculating the mean from the bootstrap samles ("meanBS"), (3) works only if NBootstrap > 0
 #' @param xlim			(numeric) vector specifying the limits in x-direction	
 #' @param ylim			(numeric) vector specifying the limits in y-direction	
 #' @param xlab			(character) specifying the x-axis label	
@@ -22,34 +25,35 @@
 #' @author Christopher Rank \email{christopher.rank@@roche.com}, Tatjana Ammer \email{tatjana.ammer@@roche.com}
 #' 
 #' @method plot RWDRI
-#' 
 
-plot.RWDRI <- function(x, Scale = c("original", "transformed"), RIperc = c(0.025, 0.975), Nhist = 60, showCI = TRUE, showPathol = TRUE, showValue = TRUE, 
-					   CIprop = 0.95, pointEst = c("fullDataEst", "medianBS"), xlim = NULL, ylim = NULL, xlab = NULL, ylab = NULL, title = NULL, ...) {	
+plot.RWDRI <- function(x, Scale = c("original", "transformed"), RIperc = c(0.025, 0.975), Nhist = 60, showCI = TRUE, showPathol = FALSE, scalePathol = TRUE, showBSModels = FALSE, showValue = TRUE, 
+					   CIprop = 0.95, pointEst = c("fullDataEst", "medianBS", "meanBS"), xlim = NULL, ylim = NULL, xlab = NULL, ylab = NULL, title = NULL, ...) {	
 				   
 	stopifnot(class(x) == "RWDRI")
 	stopifnot(!is.null(x$Data))	
 	Scale    <- match.arg(Scale[1], choices = c("original", "transformed"))
-	pointEst <- match.arg(pointEst[1], choices = c("fullDataEst", "medianBS"))
+	pointEst <- match.arg(pointEst[1], choices = c("fullDataEst", "medianBS", "meanBS"))
 	
-	modelFound <- (!is.na(x$Mu) & !is.na(x$Sigma) & !is.na(x$Lambda))
-	
+	modelFound   <- (!is.na(x$Mu) & !is.na(x$Sigma) & !is.na(x$Lambda) & !is.na(x$Shift))
+	BSPerformed  <- (Scale == "original" & modelFound & length(x$MuBS) > 0 & length(x$SigmaBS) > 0 & length(x$LambdaBS) > 0 & length(x$ShiftBS) > 0)
+	showBSModels <- ifelse(BSPerformed, showBSModels, FALSE)
+			
 	# extract binned data
 	Data <- x$Data		
 	
-	if (is.null(x$abOr) | !modelFound)
-		ab <- as.numeric(quantile(x = Data, probs = c(0.005, 0.995)))
+	if (is.null(x$abOr) & !modelFound)
+		ab <- as.numeric(quantile(x = Data, probs = c(0.005, 0.995), na.rm = TRUE))
 	else
-		ab <- x$abOr
+		ab <- x$abOr + x$Shift
 	
 	if (Scale == "transformed" & modelFound) {
-		Data <- suppressWarnings(BoxCox(Data, x$Lambda))		
+		Data <- suppressWarnings(BoxCox(Data - x$Shift, x$Lambda))				
 		Data <- Data[!is.na(Data) & is.finite(Data)]			
 		
 		ab <- range(Data)
 	}
 	
-	# calculate reference ranges
+	# calculate reference intervals
 	RI <- getRI(x = x, RIperc = RIperc, CIprop = CIprop, pointEst = pointEst, Scale = Scale)	
 		
 	if (is.null(xlab))	
@@ -62,7 +66,7 @@ plot.RWDRI <- function(x, Scale = c("original", "transformed"), RIperc = c(0.025
 		xlim <- range(c(ab, 0.98*min(RI$PointEst), 0.95*RI$CILow, 1.1*max(RI$PointEst), 1.02*RI$CIHigh), na.rm = TRUE)
 	
 	if (is.null(title))
-		title <- paste0("Estimated Reference Interval (Costs: ", signif(x$Cost, 4), ")")	
+		title <- paste0("Estimated Reference Interval")	
 	
 	if(is.na(x$roundingBase) | Scale == "transformed")
 	{
@@ -93,8 +97,8 @@ plot.RWDRI <- function(x, Scale = c("original", "transformed"), RIperc = c(0.025
 		hist1$density <- countsData/sum(countsData)
 		hist1$mids    <- mids	
 			
-		breakL 	   <- c(breaks1[1:(length(breaks1)-1)], breaks2[1:(length(breaks2)-1)])
-		breakR 	   <- c(breaks1[2:length(breaks1)], 	breaks2[2:length(breaks2)])
+		breakL 	   <- breakLBS <- c(breaks1[1:(length(breaks1)-1)], breaks2[1:(length(breaks2)-1)])
+		breakR 	   <- breakRBS <- c(breaks1[2:length(breaks1)], 	breaks2[2:length(breaks2)])
 	
 	} else
 	{		
@@ -113,29 +117,72 @@ plot.RWDRI <- function(x, Scale = c("original", "transformed"), RIperc = c(0.025
 		mids	   <- hist1$mids 
 		countsData <- hist1$counts
 		
-		breakL <- breaks1[1:(length(breaks1)-1)]
-		breakR <- breaks1[2:length(breaks1)]		
+		breakL <- breakLBS <- breaks1[1:(length(breaks1)-1)]
+		breakR <- breakRBS <- breaks1[2:length(breaks1)]			
 	}	
 	
 	# Box Cox transformation of histogram breaks and histogram range
 	if (Scale == "original" & modelFound) {		
-		breakL 	  <- suppressWarnings(BoxCox(breakL, x$Lambda))		
-		breakR 	  <- suppressWarnings(BoxCox(breakR, x$Lambda))	
+		breakL 	  <- suppressWarnings(BoxCox(breakL-x$Shift, x$Lambda))		
+		breakR 	  <- suppressWarnings(BoxCox(breakR-x$Shift, x$Lambda))	
 	}		
+		
+	# calculate curves of BS models
+	if (BSPerformed & (showBSModels | pointEst!="fullDataEst"))	
+	{
+		countsPredBS <- matrix(NA, nrow=length(breakLBS), ncol=length(x$MuBS))
+		
+		for(i in 1:length(x$MuBS))
+		{		
+			breakLBS_i <- suppressWarnings(BoxCox(breakLBS-x$ShiftBS[i], x$LambdaBS[i]))		
+			breakRBS_i <- suppressWarnings(BoxCox(breakRBS-x$ShiftBS[i], x$LambdaBS[i]))
+			
+			tempCountsPredBS <- length(Data)*x$PBS[i]*(pnorm(q = breakRBS_i, mean = x$MuBS[i], sd = x$SigmaBS[i]) - pnorm(q = breakLBS_i, mean = x$MuBS[i], sd = x$SigmaBS[i]))			
+			tempCountsPredBS[tempCountsPredBS < 0] <- 0
+			
+			tempCountsPredBS  <- tempCountsPredBS[sortIndex]	
+			
+			countsPredBS[, i] <- tempCountsPredBS
+		}		
+	}
 	
 	maxPred <- NA 
 	
 	if (modelFound) {
+		
 		# theoretical prediction of bin counts
 		countsPred <- length(Data)*x$P*(pnorm(q = breakR, mean = x$Mu, sd = x$Sigma) - pnorm(q = breakL, mean = x$Mu, sd = x$Sigma))			
 		countsPred[countsPred < 0] <- 0
-	
+		
 		countsPred 	<- countsPred[sortIndex]
+				
+		# replace by median or mean curve
+		if (BSPerformed & pointEst!="fullDataEst") {
+			
+			for (i in 1:length(countsPred)) {
+				
+				if (pointEst=="medianBS") {
+					countsPred[i] <- median(countsPredBS[i, ], na.rm = TRUE)					
+				} 		
+				if (pointEst=="meanBS") {
+					countsPred[i] <- mean(countsPredBS[i, ], na.rm = TRUE)					
+				}				
+			}			
+		}		
+			
 		maxPred 	<- max(countsPred)
 		
 		# calculate difference of counts
 		countsDiff <- countsData - countsPred
 		countsDiff[countsDiff<0] <- 0
+		
+		if (scalePathol) {
+			# calculate weighting of difference
+			weightDiff <- countsDiff/(countsPred+1e-20)
+			weightDiff <- pmin(weightDiff, 1.0)	
+			
+			countsDiff <- countsDiff*weightDiff				
+		}			
 	}
 	
 	if (is.null(ylim)) {
@@ -143,40 +190,52 @@ plot.RWDRI <- function(x, Scale = c("original", "transformed"), RIperc = c(0.025
 		ylim[1] <- 0.03*ylim[2]
 	}	
 	
-	plot(hist1, freq = TRUE, border = NA, col = "grey65", main = title, xaxt = 'n', yaxt = 'n', xlab = xlab, ylab = ylab, xlim = xlim, ylim = ylim, cex.main = 1.5, cex.lab = 1.25)
-
-	axis(1, at = pretty(xlim, n = 10), cex.axis = 0.85)
-	axis(2, at = pretty(ylim), las = 1, cex.axis = ifelse(2/3*max(ylim) < 1e5, 0.9, 0.9), mgp = c(3, ifelse(2/3*max(ylim) < 1e4, 1.0, 0.8), 0))
-	
-	#axis(2, at = pretty(ylim), las = 1, cex.axis = ifelse(2/3*max(ylim) < 1e5, 0.7, 0.65), mgp = c(3, ifelse(2/3*max(ylim) < 1e4, 1.0, 0.8), 0))
-	
-	lines(x = mids, y = countsData, lty = 2, lwd = 2, col = "dodgerblue4")
-	
-	if (modelFound)	{
-		lines(x = mids, y = countsPred, lwd = 2, col = "green2")
+	plot(hist1, freq = TRUE, border = NA, col = "grey80", main = title, xaxt = 'n', yaxt = 'n', xlab = xlab, ylab = ylab, xlim = xlim, ylim = ylim, cex.main = 1.3, cex.lab = 1.05)
 		
-		if(showPathol)
-				lines(mids, countsDiff, col = "red3", lwd = 2)
+	axis(1, at = pretty(xlim, n = 10), cex.axis = 0.85)
+	axis(2, at = pretty(ylim), las = 1, cex.axis = ifelse(2/3*max(ylim) < 1e5, 0.75, 0.70), mgp = c(3, ifelse(2/3*max(ylim) < 1e4, 1.0, 0.8), 0))
+		
+	# add curves of BS models
+	if (showBSModels) {
+		for (i in 1:length(x$MuBS)) {
+			
+			lines(x = mids, y = countsPredBS[, i], lwd = 2, col = as.rgb("green3", min(0.25, 4/length(x$MuBS))))			
+		}		
 	}
 	
-	addGrid(pretty(xlim, n = 10), pretty(ylim))
+	# add curve of total distribution
+	lines(x = mids, y = countsData, lty = 2, lwd = 1.5, col = "black")
+	
+	if (modelFound)	{				
+		
+		# add curve of non-pathological distribution
+		if(!showBSModels)
+			lines(x = mids, y = countsPred, lwd = 2, col = "green3")
+		
+		# add curve of pathological distribution
+		if(showPathol & !showBSModels)
+			lines(mids, countsDiff, col = "red4", lwd = 1.5)
+	}
+	
+	addGrid(pretty(xlim, n = 10), pretty(ylim), col = "grey90")
 	box()
 	
+	# add confidence intervals
 	if (modelFound)	{
 		for (i in 1:length(RIperc)) {
 			if (showCI & !is.na(RI$CILow[i]) & !is.na(RI$CIHigh[i]))		
-				rect(RI$CILow[i],  -1e3, RI$CIHigh[i],  1e9, col = as.rgb("green2", 0.20), border = NA)		
+				rect(RI$CILow[i],  -1e3, RI$CIHigh[i], 1e9, col = as.rgb("green2", 0.20), border = NA)		
 		}	
 		
-		abline(v = RI$PointEst, lwd = 2, lty = 2, col = "green2")	
+		abline(v = RI$PointEst, lwd = 2, lty = 2, col = "green3")	
 		
 		adjust <- rep(0.5, times = length(RIperc))
 		adjust[RI$Percentile < 0.5] <- 1
-		adjust[RI$Percentile > 0.5] <- 0	
+		adjust[RI$Percentile > 0.5] <- 0
+		
 		if (showValue)
-			mtext(text = signif(RI$PointEst, 3), at = RI$PointEst, col = "green3", cex = 1.3, adj = adjust)
+			mtext(text = signif(RI$PointEst, 3), at = RI$PointEst, col = "green3", cex = 1.0, adj = adjust)
 	}
-	
 }
 
 
@@ -191,8 +250,6 @@ plot.RWDRI <- function(x, Scale = c("original", "transformed"), RIperc = c(0.025
 #' @param col (character) color of grid-lines
 #' @param lwd (integer) line width of grid-lines
 #' @param lty (integer) line type of grid-lines
-#' 
-#' @return No return value, called for adding a grid to a plot
 #' 
 #' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
 
@@ -222,6 +279,7 @@ addGrid <- function(x = NULL, y = NULL, col = "lightgray", lwd = 1L, lty = 3L) {
 	}                                     
 }
 
+
 #' Convert color-names or RGB-code to possibly semi-transparent RGB-code.
 #' 
 #' Function takes the name of a color and converts it into the rgb space. Parameter "alpha" allows
@@ -239,6 +297,15 @@ addGrid <- function(x = NULL, y = NULL, col = "lightgray", lwd = 1L, lty = 3L) {
 #' 
 #' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
 #' 
+#' @examples 
+#' \dontrun{
+#' # convert character string representing a color to RGB-code using alpha-channel of .25 (75\% transparent)
+#'      as.rgb("red", alpha = .25)
+#' 
+#' # same thing now using the RGB-code of red (alpha=1, i.e. as.rgb("red"))
+#'      as.rgb("#FF0000FF", alpha = .25)
+#' }
+
 as.rgb <- function(col = "black", alpha = 1) {
 	if (length(col) > 1 && (length(alpha) == 1 || length(alpha) < length(col))) {        # unclear which alpha to use or only one alpha specified
 		

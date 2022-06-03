@@ -17,6 +17,7 @@ BoxCox <- function(x, lambda) {
 	x
 }
 
+
 #' Inverse of the one-parameter Box-Cox transformation.
 #' 
 #' @param x				(numeric) data to be transformed
@@ -35,6 +36,7 @@ invBoxCox <- function(x, lambda) {
 		
 	x
 }
+
 
 #' Approximate calculation of CDF of normal distribution.
 #' 
@@ -79,7 +81,6 @@ pnormApprox <- function(q, pNormVal, mean = 0, oneOverSd = 1, oneOverH = 10) {
 
 ashDensity <- function(x, ab, nbin, m, kopt = c(2, 1), normToAB = FALSE) {	
 
-	#d <- ash1(bins = bin1(x = x, ab = ab, nbin = nbin), m = m, kopt = kopt)
 	invisible(capture.output(d <- ash1(bins = bin1(x = x, ab = ab, nbin = nbin), m = m, kopt = kopt)))
 	
 	if(normToAB)
@@ -91,6 +92,40 @@ ashDensity <- function(x, ab, nbin, m, kopt = c(2, 1), normToAB = FALSE) {
 }
 
 
+#' Estimate rounding base of the input data. 
+#' 
+#' @param x		(numeric) vector of data points
+#' 
+#' @return (numeric) with estimated rounding base (e.g. 0.001 when rounded to 3 digits)
+#' 
+#' @author Christopher Rank \email{christopher.rank@@roche.com}, Tatjana Ammer \email{tatjana.ammer@@roche.com}
+
+findRoundingBase <- function(x) {
+	
+	ab <- as.numeric(quantile(x, probs = c(0.025, 0.975), na.rm = TRUE))
+	
+	# generate table with difference between neighboring values 
+	diffVal  <- table(round(diff(sort(unique(x[x>=ab[1] & x<=ab[2]]))), digits=10))		
+	# remove number of those that have a difference smaller than e-10
+	diffVal <- diffVal[names(diffVal) != "0"]
+	
+	# select differences that occur in >= 10% of cases and that have a base 10
+	logNames <- log10(as.numeric(names(diffVal)))	
+	diffVal  <- diffVal[diffVal>=0.1*sum(diffVal) & logNames==round(logNames)]
+	
+	roundingBase <- NA
+	
+	# if dataset has only finite number of unique values (e.g. rounded data)
+	if (length(diffVal) > 0) {
+		
+		# determine rounding base (maximum step size of discrete values)
+		roundingBase <- max(as.numeric(names(diffVal)))	
+	}
+	
+	return(roundingBase)	
+}
+
+
 #' Method to calculate reference intervals (percentiles) for objects of class 'RWDRI'
 #' 
 #' @param x				(object) of class 'RWDRI'
@@ -98,62 +133,70 @@ ashDensity <- function(x, ab, nbin, m, kopt = c(2, 1), normToAB = FALSE) {
 #' @param CIprop		(numeric) value specifying the central region for estimation of confidence intervals
 #' @param pointEst		(character) specifying the point estimate determination: (1) using the full dataset ("fullDataEst"),
 #' 						(2) calculating the median from the bootstrap samples ("medianBS"), (2) works only if NBootstrap > 0
+#' 						(3) calculating the mean from the bootstrap samles ("meanBS"), (3) works only if NBootstrap > 0
 #' @param Scale			(character) specifying if percentiles are calculated on the original scale ("Or") or the transformed scale ("Tr")
 #' 
 #' @return				(data.frame) with columns for percentile, point estimate and confidence intervals. 
 #' 
 #' @author Christopher Rank \email{christopher.rank@@roche.com}, Tatjana Ammer \email{tatjana.ammer@@roche.com}
 
-getRI <- function(x, RIperc = c(0.025, 0.975), CIprop = 0.95, pointEst = c("fullDataEst", "medianBS"),Scale = c("original", "transformed")) {
+getRI <- function(x, RIperc = c(0.025, 0.975), CIprop = 0.95, pointEst = c("fullDataEst", "medianBS", "meanBS"), Scale = c("original", "transformed")) {
+	
 	stopifnot(class(x) == "RWDRI")
 	stopifnot(is.numeric(RIperc))
 	stopifnot(is.numeric(CIprop))
-	pointEst <- match.arg(pointEst[1], choices = c("fullDataEst", "medianBS"))
+	pointEst <- match.arg(pointEst[1], choices = c("fullDataEst", "medianBS", "meanBS"))
 	Scale    <- match.arg(Scale[1], choices = c("original", "transformed"))
 	
-	RIperc <- sort(RIperc)
-	RRResult <- data.frame(Percentile = RIperc, PointEst = NA, CILow = NA, CIHigh = NA)
+	RIperc	 <- sort(RIperc)
+	RIResult <- data.frame(Percentile = RIperc, PointEst = NA, CILow = NA, CIHigh = NA)
 	
-	if(!is.na(x$Mu) & !is.na(x$Sigma) & !is.na(x$Lambda)) {
-	
+	if (!is.na(x$Mu) & !is.na(x$Sigma) & !is.na(x$Lambda) & !is.na(x$Shift)) {
+			
 		RI <- qnorm(p = RIperc, mean = x$Mu, sd = x$Sigma)
 	
-		if(Scale == "original") {
+		if (Scale == "original") {
 			RI <- invBoxCox(RI, lambda = x$Lambda)
+			RI <- RI + x$Shift
+						
 			RI[RI<0] <- 0		
 			RI[is.na(RI)] <- 0 
 		}
 		
-		RRResult$PointEst <- RI
+		RIResult$PointEst <- RI
 	
 		# reference intervals for Bootstrap samples
-		if (length(x$MuBS) > 0 & length(x$SigmaBS) > 0 & length(x$LambdaBS) > 0 & length(x$CostBS) > 0) {
+		if (Scale == "original" & length(x$MuBS) > 0 & length(x$SigmaBS) > 0 & length(x$LambdaBS) > 0 & length(x$ShiftBS) > 0 & length(x$CostBS) > 0) {
 			
-			for(i in 1:length(RIperc)) {
+			for (i in 1:length(RIperc)) {
 				
-				RRBS <- qnorm(p = RIperc[i], mean = x$MuBS, sd = x$SigmaBS)
+				RIBS <- qnorm(p = RIperc[i], mean = x$MuBS, sd = x$SigmaBS)
+								
+				for (l in 1:length(RIBS)) {
+					if (!is.na(x$MuBS[l]) & !is.na(x$SigmaBS[l]) & !is.na(x$LambdaBS[l]) & !is.na(x$ShiftBS[l])) {
+						RIBS[l]	<- max(0, invBoxCox(RIBS[l], x$LambdaBS[l]) + x$ShiftBS[l], na.rm = TRUE)
+						
+					} else {
+						RIBS[l] <-NA
+					}
+				}				
 				
-				if(Scale == "original") {
-					for(l in 1:length(RRBS)) {
-						if(!is.na(x$MuBS[l]) & !is.na(x$SigmaBS[l]) & !is.na(x$LambdaBS[l])) {
-							RRBS[l]	<- max(0, invBoxCox(RRBS[l], x$LambdaBS[l]), na.rm = TRUE)
-						}else {
-							RRBS[l] <-NA
-						}
-					}		
-				}
+				RIResult$CILow[i]  <- as.numeric(quantile(x = RIBS, probs = (1-CIprop)/2, na.rm = TRUE))
+				RIResult$CIHigh[i] <- as.numeric(quantile(x = RIBS, probs = 1-(1-CIprop)/2, na.rm = TRUE))
 				
-				RRResult$CILow[i]  <- as.numeric(quantile(x = RRBS, probs = (1-CIprop)/2, na.rm = TRUE))
-				RRResult$CIHigh[i] <- as.numeric(quantile(x = RRBS, probs = 1-(1-CIprop)/2, na.rm = TRUE))
-				
-				if(pointEst=="medianBS") {
-					RRResult$PointEst[i] <- median(RRBS, na.rm = TRUE)					
+				if(pointEst == "medianBS") {
+					RIResult$PointEst[i] <- median(RIBS, na.rm = TRUE)					
 				} 		
+				if(pointEst == "meanBS") {
+					RIResult$PointEst[i] <- mean(RIBS, na.rm = TRUE)					
+				}
 			}
 		}
 	}
-	return(RRResult)	
+	
+	return(RIResult)	
 }
+
 
 #' Standard print method for objects of class 'RWDRI'
 #' 
@@ -162,6 +205,7 @@ getRI <- function(x, RIperc = c(0.025, 0.975), CIprop = 0.95, pointEst = c("full
 #' @param CIprop		(numeric) value specifying the central region for estimation of confidence intervals
 #' @param pointEst		(character) specifying the point estimate determination: (1) using the full dataset ("fullDataEst"),
 #' 						(2) calculating the median from the bootstrap samples ("medianBS"), (2) works only if NBootstrap > 0
+#' 						(3) calculating the mean from the bootstrap samples ("meanBS"), (3) works only if NBootstrap > 0
 #' @param ...			additional arguments passed forward to other functions.
 #' 
 #' @return				No return value. Instead, a summary is printed.
@@ -170,12 +214,13 @@ getRI <- function(x, RIperc = c(0.025, 0.975), CIprop = 0.95, pointEst = c("full
 #' 
 #' @method print RWDRI
 
-print.RWDRI <- function(x, RIperc = c(0.025, 0.975), CIprop = 0.95, pointEst = c("fullDataEst", "medianBS"), ...) {
+print.RWDRI <- function(x, RIperc = c(0.025, 0.975), CIprop = 0.95, pointEst = c("fullDataEst", "medianBS", "meanBS"), ...) {
+	
 	stopifnot(class(x) == "RWDRI")
 	stopifnot(is.numeric(RIperc))
 	stopifnot(is.numeric(CIprop))
 	
-	pointEst <- match.arg(pointEst[1], choices = c("fullDataEst", "medianBS"))
+	pointEst <- match.arg(pointEst[1], choices = c("fullDataEst", "medianBS", "meanBS"))
 	
 	# calculate reference intervals
 	RI <- getRI(x = x, RIperc = RIperc, CIprop = CIprop, pointEst = pointEst)
@@ -201,7 +246,8 @@ print.RWDRI <- function(x, RIperc = c(0.025, 0.975), CIprop = 0.95, pointEst = c
 	cat("\nModel Parameters\n")
 	cat("------------------------------------------------\n")	
 	
-	cat(paste0("     method: ", x$Method, " (v", packageVersion("refineR"), ")\n"))
+	cat(paste0("     method: ", x$Method, " (v", x$PkgVersion, ")\n"))
+	cat(paste0("      model: ", x$Model, "\n"))
 	cat(paste0("     N data: ", length(x$Data), " (data points)\n"))
 
 	if(!is.na(x$roundingBase))
@@ -218,11 +264,8 @@ print.RWDRI <- function(x, RIperc = c(0.025, 0.975), CIprop = 0.95, pointEst = c
 	cat(paste0("     lambda: ", signif(x$Lambda, 3), "\n"))
 	cat(paste0("         mu: ", signif(x$Mu, 3), "\n"))
 	cat(paste0("      sigma: ", signif(x$Sigma, 3), "\n"))
+	cat(paste0("      shift: ", signif(x$Shift, 3), "\n"))
 	cat(paste0("       cost: ", signif(x$Cost, 3), "\n"))
-	cat(paste0("NP fraction: ", signif(x$P, 3), "\n"))
-	
-	#message("!!Results generated with refineR prototype algo (v", packageVersion("refineR"), "). Treat with care.\n\n")
-	#cat(paste0("\n!!Results generated with refineR prototype algo (v", packageVersion("refineR"), "). Treat with care.\n\n"))	
-
+	cat(paste0("NP fraction: ", signif(x$P, 3), "\n"))	
 }
 

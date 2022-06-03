@@ -34,10 +34,21 @@
 
 #' Simulated Testcase 4. 
 #' 
-#' This dataset consists of N = 250,000 simulated measurements with 80\% non-pathological and 20\% pathological samples. 
-#' Ground Truth for reference intervals (2.5\% perc., 97.5\% perc): [0.25, 4]
+#' This dataset consists of N = 100,000 simulated measurements with 90\% non-pathological and 10\% pathological samples.
+#' Ground Truth for reference intervals (2.5\% perc., 97.5\% perc): [10, 50] 
 #' 
 #' @format Numeric vector with data points.  
 #' @usage  data(testcase4)
 #' 
 "testcase4"
+
+
+#' Simulated Testcase 5. 
+#' 
+#' This dataset consists of N = 250,000 simulated measurements with 80\% non-pathological and 20\% pathological samples. 
+#' Ground Truth for reference intervals (2.5\% perc., 97.5\% perc): [0.25, 4]
+#' 
+#' @format Numeric vector with data points.  
+#' @usage  data(testcase5)
+#' 
+"testcase5"

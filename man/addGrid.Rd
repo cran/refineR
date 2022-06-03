@@ -17,9 +17,6 @@ addGrid(x = NULL, y = NULL, col = "lightgray", lwd = 1L, lty = 3L)
 
 \item{lty}{(integer) line type of grid-lines}
 }
-\value{
-No return value, called for adding a grid to a plot
-}
 \description{
 It is possible to use automatically determined grid lines (\code{x=NULL, y=NULL}) or specifying the number 
 of cells \code{x = 3, y = 4} as done by \code{grid}. Additionally, x- and y-locations of grid-lines can be specified,

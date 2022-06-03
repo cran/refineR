@@ -23,6 +23,15 @@ to specify the transparency within [0,1], 0 meaning completey transparent and 1 
 opaque. If an RGB-code is provided and alpha != 1, the RGB-code of the transparency adapted color 
 will be returned.
 }
+\examples{
+\dontrun{
+# convert character string representing a color to RGB-code using alpha-channel of .25 (75\\% transparent)
+     as.rgb("red", alpha = .25)
+
+# same thing now using the RGB-code of red (alpha=1, i.e. as.rgb("red"))
+     as.rgb("#FF0000FF", alpha = .25)
+}
+}
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
 }

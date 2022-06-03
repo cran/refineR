@@ -4,21 +4,34 @@
 \alias{findRI}
 \title{Function to estimate reference intervals for a single population}
 \usage{
-findRI(Data = NULL, NBootstrap = 0, seed = 123)
+findRI(
+  Data = NULL,
+  model = c("BoxCox", "modBoxCoxFast", "modBoxCox"),
+  NBootstrap = 0,
+  seed = 123,
+  ...
+)
 }
 \arguments{
 \item{Data}{(numeric) values specifying data points comprising pathological
 and non-pathological values}
 
+\item{model}{(character) specifying the applied model (can be either "BoxCox" (default), "modBoxCoxFast" or "modBoxCox"),
+option "modBoxCoxFast" and "modBoxCox" first runs the original optimization using the Box-Cox transformation, 
+afterwards the modified Box-Cox transformation is utilized and an optimal shift is identified 
+('fast': only 1 iteration is carried out to find a shift)}
+
 \item{NBootstrap}{(integer) specifying the number of bootstrap repetitions}
 
 \item{seed}{(integer) specifying the seed used for bootstrapping}
+
+\item{...}{additional arguments to be passed to the method}
 }
 \value{
 (object) of class "RWDRI" with parameters optimized
 }
 \description{
-The function estimates the optimal parameters lambda, mu and sigma for a raw data set contatining pathological 
+The function estimates the optimal parameters lambda, mu and sigma for a raw data set containing pathological 
 and non-pathological values. The optimization is carried out via a multi-level grid search to 
 minimize the cost function (negative log-likelihood with regularization) and to find a model that fits the 
 distribution of the physiological values and thus separates pathological from non-pathological values.
@@ -26,20 +39,18 @@ distribution of the physiological values and thus separates pathological from no
 \examples{
 
 # first example
-
 \donttest{
 data(testcase1)
 resRI <- findRI(Data = testcase1)
 print(resRI)
 plot(resRI, showPathol = FALSE)
-}
 
 # second example
 data(testcase2)
 resRI <- findRI(Data = testcase2)
-print(resRI)
+print(resRI, RIperc = c(0.025, 0.5, 0.975))
+plot(resRI, showPathol = FALSE)
 
-\donttest{
 # third example, with bootstrapping 
 data(testcase3)
 resRI <- findRI(Data = testcase3, NBootstrap = 30, seed = 123)
@@ -47,13 +58,16 @@ print(resRI)
 getRI(resRI, RIperc = c(0.025, 0.5, 0.975), CIprop = 0.95, pointEst ="fullDataEst")
 getRI(resRI, RIperc = c(0.025, 0.5, 0.975), CIprop = 0.95, pointEst ="medianBS")
 plot(resRI)
-# plot without showing values and pathological distribution
-plot(resRI, showValue = FALSE, showPathol = FALSE)
-plot(resRI,  RIperc = c(0.025, 0.5, 0.975), showPathol = FALSE, showCI = TRUE) 
 
-# forth example, with bootstrapping
+# forth example, without values and pathological distribution in plot function 
 data(testcase4)
-resRI <- findRI(Data = testcase4, NBootstrap = 30)
+resRI <- findRI(Data = testcase4)
+print(resRI)
+plot(resRI, showValue = FALSE, showPathol =FALSE) 
+
+# fifth example, with bootstrapping
+data(testcase5)
+resRI <- findRI(Data = testcase5, NBootstrap = 30)
 plot(resRI,  RIperc = c(0.025, 0.5, 0.975), showPathol = FALSE, showCI = TRUE)
 }
 }

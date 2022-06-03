@@ -4,12 +4,14 @@
 \alias{generateHistData}
 \title{Generate list with histogram data.}
 \usage{
-generateHistData(x, ab)
+generateHistData(x, ab, roundingBase)
 }
 \arguments{
 \item{x}{(numeric) vector of data points}
 
 \item{ab}{(numeric) vector of lower and higher limit embedding appropriate region with the main peak}
+
+\item{roundingBase}{(numeric) describing the rounding base of the dataset}
 }
 \value{
 (list) with histogram data used in the calculation of cost.

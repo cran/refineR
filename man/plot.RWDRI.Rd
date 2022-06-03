@@ -10,10 +10,12 @@
   RIperc = c(0.025, 0.975),
   Nhist = 60,
   showCI = TRUE,
-  showPathol = TRUE,
+  showPathol = FALSE,
+  scalePathol = TRUE,
+  showBSModels = FALSE,
   showValue = TRUE,
   CIprop = 0.95,
-  pointEst = c("fullDataEst", "medianBS"),
+  pointEst = c("fullDataEst", "medianBS", "meanBS"),
   xlim = NULL,
   ylim = NULL,
   xlab = NULL,
@@ -25,9 +27,9 @@
 \arguments{
 \item{x}{(object) of class 'RWDRI'}
 
-\item{Scale}{(character) specifying if the plot is generated on the original scale ("Or") or the transformed scale ("Tr")}
+\item{Scale}{(character) specifying if the plot is generated on the original scale ("original") or the transformed scale ("transformed")}
 
-\item{RIperc}{(numeric) value specifying the percentiles, which define the reference interval}
+\item{RIperc}{(numeric) value specifying the percentiles, which define the reference interval (default c(0.025, 0.975))}
 
 \item{Nhist}{(integer) number of bins in the histogram (derived automatically if not set)}
 
@@ -35,12 +37,17 @@
 
 \item{showPathol}{(logical) specifying if the estimated pathological distribution shall be shown}
 
+\item{scalePathol}{(logical) specifying if the estimated pathological distribution shall be weighted with the ration of pathol/non-pathol}
+
+\item{showBSModels}{(logical) specifying if the estimated bootstrapping models shall be shown}
+
 \item{showValue}{(logical) specifying if the exact value of the estimated reference intervals shall be shown above the plot}
 
 \item{CIprop}{(numeric) value specifying the central region for estimation of confidence intervals}
 
 \item{pointEst}{(character) specifying the point estimate determination: (1) using the full dataset ("fullDataEst"),
-(2) calculating the median from the bootstrap samples ("medianBS"), (2) works only if NBootstrap > 0}
+(2) calculating the median from the bootstrap samples ("medianBS"), (2) works only if NBootstrap > 0,
+(3) calculating the mean from the bootstrap samles ("meanBS"), (3) works only if NBootstrap > 0}
 
 \item{xlim}{(numeric) vector specifying the limits in x-direction}
 
