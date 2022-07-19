@@ -37,7 +37,7 @@
 
 \item{showPathol}{(logical) specifying if the estimated pathological distribution shall be shown}
 
-\item{scalePathol}{(logical) specifying if the estimated pathological distribution shall be weighted with the ration of pathol/non-pathol}
+\item{scalePathol}{(logical) specifying if the estimated pathological distribution shall be weighted with the ratio of pathol/non-pathol}
 
 \item{showBSModels}{(logical) specifying if the estimated bootstrapping models shall be shown}
 
@@ -46,8 +46,8 @@
 \item{CIprop}{(numeric) value specifying the central region for estimation of confidence intervals}
 
 \item{pointEst}{(character) specifying the point estimate determination: (1) using the full dataset ("fullDataEst"),
-(2) calculating the median from the bootstrap samples ("medianBS"), (2) works only if NBootstrap > 0,
-(3) calculating the mean from the bootstrap samles ("meanBS"), (3) works only if NBootstrap > 0}
+(2) calculating the median from all bootstrap samples ("medianBS"), (2) works only if NBootstrap > 0,
+(3) calculating the mean from all bootstrap samples ("meanBS"), (3) works only if NBootstrap > 0}
 
 \item{xlim}{(numeric) vector specifying the limits in x-direction}
 

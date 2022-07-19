@@ -1,7 +1,7 @@
 Type: Package
 Package: refineR
-Version: 1.5.0
-Date: 2022-06-02
+Version: 1.5.1
+Date: 2022-07-19
 Title: Reference Interval Estimation using Real-World Data
 Author: Tatjana Ammer [aut, cre],
   Christopher M Rank [aut],
@@ -14,6 +14,7 @@ Authors@R: c(
 Depends: R (>= 3.2.0)
 Imports: stats, ash, future, future.apply, parallel, graphics,
         grDevices
+Suggests: knitr, rmarkdown
 Description: Indirect method for the estimation of reference intervals using Real-World Data ('RWD'). It takes routine measurements 
 	of diagnostic tests, containing pathological and non-pathological samples as input and uses sophisticated
 	statistical methods to derive a model describing the distribution of the non-pathological samples. This distribution can then be 
@@ -21,8 +22,9 @@ Description: Indirect method for the estimation of reference intervals using Rea
 	Furthermore, the package offers functions for printing and plotting the results of the algorithm. See ?refineR for a more comprehensive description of the features. 
 	Version 1.0 of the algorithm is described in detail in Ammer T., Schuetzenmeister A., Prokosch H.-U., Rauh M., Rank C.M., Zierk J. "refineR: A Novel Algorithm for Reference Interval Estimation from Real-World Data". Scientific Reports (2021) <doi:10.1038/s41598-021-95301-2>.
 License: GPL (>= 3)
+VignetteBuilder: knitr, rmarkdown
 NeedsCompilation: no
 LazyData: true
-Packaged: 2022-06-02 18:28:44 UTC; ammert
+Packaged: 2022-07-19 11:55:51 UTC; ammert
 Repository: CRAN
-Date/Publication: 2022-06-03 08:10:04 UTC
+Date/Publication: 2022-07-19 15:50:01 UTC

@@ -6,13 +6,13 @@
 #' @param Nhist			(integer) number of bins in the histogram (derived automatically if not set)
 #' @param showCI		(logical) specifying if the confidence intervals are shown
 #' @param showPathol	(logical) specifying if the estimated pathological distribution shall be shown
-#' @param scalePathol	(logical) specifying if the estimated pathological distribution shall be weighted with the ration of pathol/non-pathol
+#' @param scalePathol	(logical) specifying if the estimated pathological distribution shall be weighted with the ratio of pathol/non-pathol
 #' @param showBSModels	(logical) specifying if the estimated bootstrapping models shall be shown
 #' @param showValue		(logical) specifying if the exact value of the estimated reference intervals shall be shown above the plot 
 #' @param CIprop		(numeric) value specifying the central region for estimation of confidence intervals
 #' @param pointEst		(character) specifying the point estimate determination: (1) using the full dataset ("fullDataEst"),
-#' 						(2) calculating the median from the bootstrap samples ("medianBS"), (2) works only if NBootstrap > 0,
-#' 						(3) calculating the mean from the bootstrap samles ("meanBS"), (3) works only if NBootstrap > 0
+#' 						(2) calculating the median from all bootstrap samples ("medianBS"), (2) works only if NBootstrap > 0,
+#' 						(3) calculating the mean from all bootstrap samples ("meanBS"), (3) works only if NBootstrap > 0
 #' @param xlim			(numeric) vector specifying the limits in x-direction	
 #' @param ylim			(numeric) vector specifying the limits in y-direction	
 #' @param xlab			(character) specifying the x-axis label	

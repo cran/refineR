@@ -353,8 +353,8 @@ defineSearchRegions <- function(x, lambdaVec, roundingBase, abEst = NULL) {
 			qData <- x
 			
 		}else {
-			qData <- as.numeric(quantile(x = x, probs = seq(0, 1, length.out = 50000), type = 7))
-		}			
+		  	qData <- as.numeric(quantile(x = x, probs = seq(0, 1, length.out = 50000), type = 7))
+		}							
 	}	
 	
 	# only call estimate ab in first definition of search regions
@@ -459,10 +459,10 @@ defineSearchRegions <- function(x, lambdaVec, roundingBase, abEst = NULL) {
 #' @param alphaMcb		(numeric) specifying the confidence level defining the maximal allowed counts below the asymmetric confidence region
 #' 
 #' @return (numeric) vector with best parameters for lambda, mu, sigma, P, cost. 
-#' 
+#'
 #'
 #' @author Tatjana Ammer \email{tatjana.ammer@@roche.com}
- 
+
 testParam <- function(lambdaVec, bestParam, Data, HistData, startValues, NIter, alpha = 0.01, alphaMcb = 0.1) {		
 	
 	h <- 0.002
@@ -541,7 +541,7 @@ testParam <- function(lambdaVec, bestParam, Data, HistData, startValues, NIter, 
 #' @return (numeric) vector with (lambda, mu, sigma, P, cost). 
 #'
 #' @author Tatjana Ammer \email{tatjana.ammer@@roche.com}
- 
+
 calculateCostHist <- function(lambda, muVec, sigmaVec, HistData, alpha = 0.01, alphaMcb = 0.1, pNormLookup) {	
 	
 	countsData	<- HistData$counts
@@ -629,7 +629,7 @@ calculateCostHist <- function(lambda, muVec, sigmaVec, HistData, alpha = 0.01, a
 					relaxFactors <- c(relaxFactors[relaxFactors>0.001 & relaxFactors<1], 1)								
 					
 					for(rf in relaxFactors)
-					{			
+					{	
 						# calculate actual predicted counts and corresponding confidence region...
 						countsPredP <- countsPred*P*rf					
 						confWidth 	<- qNormFactor * sqrtCountsPred * sqrt(P*rf)
@@ -649,7 +649,7 @@ calculateCostHist <- function(lambda, muVec, sigmaVec, HistData, alpha = 0.01, a
 						sumCountsEval    <- sum(countsData[ selectionEval & selectionPeak80])
 						sumCountsNotEval <- sum(countsData[!selectionEval & selectionPeak80])
 						
-						ratioCounts80 <- max(0.01, min(1, sumCountsEval/sumCountsNotEval), na.rm=TRUE)^2
+						ratioCounts80 	 <- max(0.01, min(1, sumCountsEval/sumCountsNotEval), na.rm=TRUE)^2
 						
 						# decide if loop shall be continued...
 						continuePLoop <- (sum(rf*countsData < countsPredPLower) <= maxCountsBelow & PIndex < length(PVec))
@@ -703,7 +703,7 @@ calculateCostHist <- function(lambda, muVec, sigmaVec, HistData, alpha = 0.01, a
 #' @return (list) specifying the index of the peaks and valleys of the density estimation. 
 #'
 #' @author Tatjana Ammer \email{tatjana.ammer@@roche.com}
- 
+
 findPeaksAndValleys <- function(Dens) {
 	
 	diffDens <- diff(Dens$y)
@@ -805,7 +805,7 @@ findPeaksAndValleys <- function(Dens) {
 #' @return (vector) specifying the new search region fo the parameter to be optimized
 #'
 #' @author Tatjana Ammer \email{tatjana.ammer@@roche.com}
- 
+
 optimizeGrid <- function(currentBestParam, paramUnique, iter, sigmLimit = TRUE) {	
 
 	optInd <- which.min(abs(paramUnique - currentBestParam))
@@ -992,7 +992,7 @@ getSumForPArea <- function(pLimitMin, pLimitMax, countsPred, HistData, lambda, m
 #' @return (list) with the two numeric values peakInd, modEst, and a density list 
 #'
 #' @author Tatjana Ammer \email{tatjana.ammer@@roche.com}
- 
+
 findMainPeak <- function(x, ab, mStart, withHeight = FALSE, prevPeak =NULL) {
 	
 	qDensFullTr <- ashDensity(x = x, ab = ab, nbin = 512, m = mStart)
@@ -1035,8 +1035,8 @@ findMainPeak <- function(x, ab, mStart, withHeight = FALSE, prevPeak =NULL) {
 		maxIndex <- which.max(height95)
 		
 		ratioHeight <- height95[maxIndex]/max(height95[-maxIndex])
-		wHeight95	<- min(1, max(0, (ratioHeight-2)*5 )) 
-
+		wHeight95   <- min(1, max(0, (ratioHeight-2)*5 )) 
+			
 		maxIndexA <- which.max(area)
 		if(max(area[-maxIndexA]) >= 0.95 & wHeight95 == 0)
 			wHeight95 <- min(1, max(0, (max(area[-maxIndexA])-0.95)*20)) #0.970 0.975 0.980 0.985 0.990 0.995 1.000 -->  0.4 0.5 0.6 0.7 0.8 0.9 1.0
@@ -1135,7 +1135,7 @@ findMainPeak <- function(x, ab, mStart, withHeight = FALSE, prevPeak =NULL) {
 #' 			2) estimating the histogram with overlapping bins   
 #'
 #' @author Tatjana Ammer \email{tatjana.ammer@@roche.com}
- 
+
 estimateAB <- function(x) {
 
 	QQ <- as.numeric(quantile(x, probs=c(0, 0.01, 0.95, 0.99, 0.999), na.rm=TRUE))
@@ -1161,11 +1161,11 @@ estimateAB <- function(x) {
 	iter <- 1
 	continueABLoop <- TRUE
 	
-	while(continueABLoop & iter <= 30 & abOpt[2]>abOpt[1] & abOpt[2]>abPeakDet[1] ) {			
+	while(continueABLoop & iter <= 30 & abOpt[2]>abOpt[1] & abOpt[2]>abPeakDet[1] )	{			
 
 		abPeakTemp 		<- c(max(abPeakDet[1], 1e-20), min(abOpt[2], abPeakDet[2]))
 		abPeakTemp[1] 	<- abPeakTemp[1] - 0.01*diff(abPeakTemp)
-
+		
 		# find main peak of distribution
 		mainPeak  <- findMainPeak(x=x, ab=c(abPeakTemp[1], min(abOpt[2], abPeakDet[2])), mStart=peakM, withHeight=TRUE)
 		Dens 	  <- ashDensity(x=x, ab=abOpt, nbin=512, m=24)			
@@ -1219,7 +1219,7 @@ estimateAB <- function(x) {
 		}				
 		
 		stepSize <- stepSize/2
-		iter	 <- iter + 1	
+		iter 	 <- iter + 1	
 	}
 	
 	abOpt <- abSearchReg <- abHist
@@ -1240,17 +1240,17 @@ estimateAB <- function(x) {
 	xLeft <- rev(Dens$x[1:(indexL-1)])
 	yLeft <- rev(Dens$y[1:(indexL-1)])	
 	
-	if(length(yLeft) > 1) {			
-		
+	if(length(yLeft) > 1) {		
+	
 		continueABLoop <- TRUE
 		
-		for(i in 1:length(yLeft)) {			
-			
+		for(i in 1:length(yLeft)) {		
+				
 			if(yLeft[i]<0.5*yMax & yLeft[i]<yMin)
 				yMin <- yLeft[i]
 			
 			if(yLeft[i] > yMin+0.5*yMax & continueABLoop) {
-				
+			
 				abOpt[1] <- xLeft[i]	
 				abSearchReg[1] <- xLeft[i]
 				continueABLoop <- FALSE
@@ -1269,13 +1269,13 @@ estimateAB <- function(x) {
 	# right side of the peak		
 	xRight <- Dens$x[(indexR+1):length(Dens$x)]
 	yRight <- Dens$y[(indexR+1):length(Dens$x)]
-	
-	if(length(yRight) > 1) {	
 		
+	if(length(yRight) > 1)	{	
+	
 		continueABLoop <- TRUE
 		
-		for(i in 1:length(yRight)) {		
-			
+		for(i in 1:length(yRight)) {					
+		
 			if(yRight[i]<0.5*yMax & yRight[i]<yMin)
 				yMin <- yRight[i]
 			
@@ -1292,7 +1292,7 @@ estimateAB <- function(x) {
 			if(sum(yRight[1:i])<1.1*area50 & continueABLoop)
 				abSearchReg[2] <- xRight[i] 
 		}								
-	}
+	}	
 
 	abHist <- abOpt
 	

@@ -14,8 +14,8 @@ and tries to find a model that best explains the non-pathological distribution. 
  \tabular{ll}{     
  Package: \tab refineR\cr
  Type: \tab Package \cr     
- Version: \tab 1.5.0 \cr     
- Date: \tab 2022-06-02 \cr
+ Version: \tab 1.5.1 \cr     
+ Date: \tab 2022-07-19 \cr
  License: \tab GPL (>=3) \cr     
  LazyLoad: \tab yes \cr   
  } 
@@ -27,6 +27,5 @@ and tries to find a model that best explains the non-pathological distribution. 
 } 
 \references{
 	Ammer, T., Schuetzenmeister, A., Prokosch, HU., Rauh, M., Rank, C.M., Zierk, J. refineR: A Novel Algorithm for Reference Interval Estimation from Real-World Data. Sci Rep 11, 16023 (2021).
-    \doi{10.1038/s41598-021-95301-2}.
-}
+} 
 \keyword{package}

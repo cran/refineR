@@ -1,3 +1,12 @@
+# refineR version 1.5.1
+
+The new version includes the following updates and improvements: 
+
+* Adjusted detection of rounding to now also handle data not rounded to the power of 10 (e.g. data that was rounded prior to unit conversion)
+
+* Added a vignette ('refineR_package') demonstrating the main functions of the package
+
+
 # refineR version 1.5.0 
 
 The new version includes the following updates and improvements: 
@@ -7,9 +16,8 @@ The new version includes the following updates and improvements:
 * Option to use the two-parameter (modified) Box-Cox transformation
   (`findRI(Data = Data, model = "modBoxCox")`)
   
-* Update of cost function: new factor to account for measurement imprecision
-  in RWD
-   
+* Update of calculation of costs: new factor to account for small deviations from the assumption of a unimodal distribution of non-pathological samples
+	
 * Adapted definition of region of test results that characterizes the
   non-pathological distribution 
   

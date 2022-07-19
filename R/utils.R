@@ -109,9 +109,29 @@ findRoundingBase <- function(x) {
 	# remove number of those that have a difference smaller than e-10
 	diffVal <- diffVal[names(diffVal) != "0"]
 	
-	# select differences that occur in >= 10% of cases and that have a base 10
-	logNames <- log10(as.numeric(names(diffVal)))	
-	diffVal  <- diffVal[diffVal>=0.1*sum(diffVal) & logNames==round(logNames)]
+	# select differences that occur in >= 1% of cases
+	diffVal  <- diffVal[diffVal>=0.01*sum(diffVal)]
+	
+	# find multiples of rounding base
+	if(length(diffVal) > 1)
+	{
+		for(i in 1:length(diffVal))
+		{
+			if(diffVal[i] > 0)
+			{
+				ratio <- as.numeric(names(diffVal))/as.numeric(names(diffVal[i]))            
+				
+				selection <- which(ratio>1.5 & abs(round(ratio, digits=9)-round(ratio))<1e-20)
+				
+				diffVal[i] <- diffVal[i] + sum(diffVal[selection])
+				
+				diffVal[selection] <- 0                    
+			}                
+		}        
+	}    
+	
+	# select differences that occur in >= 10% of cases
+	diffVal  <- diffVal[diffVal>=0.1*sum(diffVal)]
 	
 	roundingBase <- NA
 	
@@ -132,8 +152,8 @@ findRoundingBase <- function(x) {
 #' @param RIperc		(numeric) value specifying the percentiles, which define the reference interval
 #' @param CIprop		(numeric) value specifying the central region for estimation of confidence intervals
 #' @param pointEst		(character) specifying the point estimate determination: (1) using the full dataset ("fullDataEst"),
-#' 						(2) calculating the median from the bootstrap samples ("medianBS"), (2) works only if NBootstrap > 0
-#' 						(3) calculating the mean from the bootstrap samles ("meanBS"), (3) works only if NBootstrap > 0
+#' 						(2) calculating the median from all bootstrap samples ("medianBS"), (2) works only if NBootstrap > 0
+#' 						(3) calculating the mean from all bootstrap samples ("meanBS"), (3) works only if NBootstrap > 0
 #' @param Scale			(character) specifying if percentiles are calculated on the original scale ("Or") or the transformed scale ("Tr")
 #' 
 #' @return				(data.frame) with columns for percentile, point estimate and confidence intervals. 
@@ -204,8 +224,8 @@ getRI <- function(x, RIperc = c(0.025, 0.975), CIprop = 0.95, pointEst = c("full
 #' @param RIperc		(numeric) value specifying the percentiles, which define the reference interval
 #' @param CIprop		(numeric) value specifying the central region for estimation of confidence intervals
 #' @param pointEst		(character) specifying the point estimate determination: (1) using the full dataset ("fullDataEst"),
-#' 						(2) calculating the median from the bootstrap samples ("medianBS"), (2) works only if NBootstrap > 0
-#' 						(3) calculating the mean from the bootstrap samples ("meanBS"), (3) works only if NBootstrap > 0
+#' 						(2) calculating the median from all bootstrap samples ("medianBS"), (2) works only if NBootstrap > 0
+#' 						(3) calculating the mean from all bootstrap samples ("meanBS"), (3) works only if NBootstrap > 0
 #' @param ...			additional arguments passed forward to other functions.
 #' 
 #' @return				No return value. Instead, a summary is printed.
