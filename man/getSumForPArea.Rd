@@ -4,7 +4,16 @@
 \alias{getSumForPArea}
 \title{Helper function to calculate the amount of observed and estimated data points within specified regions around the peak.}
 \usage{
-getSumForPArea(pLimitMin, pLimitMax, countsPred, HistData, lambda, mu, sigma)
+getSumForPArea(
+  pLimitMin,
+  pLimitMax,
+  countsPred,
+  HistData,
+  lambda,
+  mu,
+  sigma,
+  pCorr
+)
 }
 \arguments{
 \item{pLimitMin}{(numeric) vector specifying the lower limits for the regions next to the peak}
@@ -20,6 +29,8 @@ getSumForPArea(pLimitMin, pLimitMax, countsPred, HistData, lambda, mu, sigma)
 \item{mu}{(numeric) parameter of the mean of non-pathological distribution}
 
 \item{sigma}{(numeric) parameter of the standard deviation of non-pathological distribution}
+
+\item{pCorr}{(numeric) correcting the cumulative probability of the truncated non-pathological distribution}
 }
 \value{
 (list) with two numeric vectors specifying the amount of observed and estimated data points surrounding the peak

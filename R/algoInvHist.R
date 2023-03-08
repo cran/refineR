@@ -9,7 +9,7 @@
 #' @author Tatjana Ammer \email{tatjana.ammer@@roche.com}
 
 generateHistData <- function(x, ab, roundingBase) {
-		
+	
 	HistData <- list()	
 	HistData$counts <- HistData$breakL <- HistData$breakR <- NULL
 	
@@ -20,7 +20,7 @@ generateHistData <- function(x, ab, roundingBase) {
 	overlapFactor <- round(256/NBins)
 	
 	NBinsTotal    <- round(NBins)*overlapFactor
-		
+	
 	# if dataset has only finite number of unique values (e.g. rounded data)
 	if(!is.na(roundingBase))
 	{	
@@ -36,7 +36,7 @@ generateHistData <- function(x, ab, roundingBase) {
 		if(length(xAB) < NBins){
 			NBins <- ceiling(length(xAB)/overlapFactor)
 		}
-				
+		
 		# calculate number of bins and number of total bins (with overlapping)	
 		NBinsTotal <- round(NBins)*overlapFactor
 		
@@ -46,33 +46,58 @@ generateHistData <- function(x, ab, roundingBase) {
 	}
 	
 	# define vector of breaks and perform histogramming
-	histBreaks <- seq(ab[1], ab[2], length.out = NBinsTotal+overlapFactor)		
+	histBreaks <- seq(ab[1], ab[2], length.out = NBinsTotal+overlapFactor)	
 	fullHist   <- hist(x[x > histBreaks[1] & x <= histBreaks[NBinsTotal+overlapFactor]], breaks = histBreaks, plot = FALSE)
-	
+		
 	# combine bins...
 	for (i in 1:NBinsTotal) {
 		HistData$counts <- c(HistData$counts, sum(fullHist$counts[i:(i+overlapFactor-1)]))			
 		HistData$breakL <- c(HistData$breakL, fullHist$breaks[i])
 		HistData$breakR <- c(HistData$breakR, fullHist$breaks[i+overlapFactor])	
 	}	
-	
+		
 	# add bin for lower border
-	HistData$counts <- c(HistData$counts, sum(x > -1e-20 & x <= ab[1]))
-	HistData$breakL <- c(HistData$breakL, max(min(ab[1], x), 1e-20))
-	HistData$breakR <- c(HistData$breakR, ab[1])
-	
+	if(min(x) <= ab[1])
+	{
+		# -1e-20 is used to include zeros although breakL is >= 1e-20
+		HistData$counts <- c(HistData$counts, sum(x > -1e-20 & x <= ab[1]))
+		HistData$breakL <- c(HistData$breakL, max(min(x), 1e-20))
+		HistData$breakR <- c(HistData$breakR, ab[1])
+		fullHist$counts <- c(sum(x > -1e-20 & x <= ab[1]), fullHist$counts)
+		fullHist$breaks <- c(max(min(x), 1e-20), fullHist$breaks)
+		
+	} else
+	{
+		HistData$counts <- c(HistData$counts, 0)
+		HistData$breakL <- c(HistData$breakL, ab[1])
+		HistData$breakR <- c(HistData$breakR, ab[1])
+		fullHist$counts <- c(0, fullHist$counts)
+		fullHist$breaks <- c(ab[1], fullHist$breaks)
+	}
+		
 	# add bin for upper border
-	HistData$counts <- c(HistData$counts, sum(x > ab[2] & x <= 1e20))
-	HistData$breakL <- c(HistData$breakL, ab[2])
-	HistData$breakR <- c(HistData$breakR, min(max(ab[2], x), 1e20))
+	if(max(x) > ab[2])
+	{
+		HistData$counts <- c(HistData$counts, sum(x > ab[2] & x <= 1e20))
+		HistData$breakL <- c(HistData$breakL, ab[2])
+		HistData$breakR <- c(HistData$breakR, min(max(x), 1e20))
+		fullHist$counts <- c(fullHist$counts, sum(x > ab[2] & x <= 1e20))
+		fullHist$breaks <- c(fullHist$breaks, min(max(x), 1e20))
+		
+	} else
+	{
+		HistData$counts <- c(HistData$counts, 0)
+		HistData$breakL <- c(HistData$breakL, ab[2])
+		HistData$breakR <- c(HistData$breakR, ab[2])
+		fullHist$counts <- c(fullHist$counts, 0)
+		fullHist$breaks <- c(fullHist$breaks, ab[2])
+	}
 	
-	fullHist$counts <- c(sum(x > 1e-20 & x <= ab[1]), fullHist$counts, sum(x > ab[2] & x <= 1e20))
-	fullHist$breaks <- c(max(min(ab[1], x), 1e-20), fullHist$breaks, min(max(ab[2], x), 1e20))
 	fullHist$mids   <- 0.5*(fullHist$breaks[2:length(fullHist$breaks)] + fullHist$breaks[1:(length(fullHist$breaks)-1)]) 
 	
 	# calculate mids of histogram bins
 	HistData$mids   <- 0.5*(HistData$breakL + HistData$breakR)	
-	
+		
 	# sort bins in order of midpoints
 	sortIndex <- sort(HistData$mids, index.return = TRUE)$ix 
 	HistData$counts <- HistData$counts[sortIndex]
@@ -87,7 +112,7 @@ generateHistData <- function(x, ab, roundingBase) {
 	HistData$NData 		   <- length(x)
 	
 	HistData$fullHist <- fullHist
-		
+	
 	return(HistData)
 }
 
@@ -118,19 +143,16 @@ generateHistData <- function(x, ab, roundingBase) {
 #' 
 #' # first example
 #' \donttest{
-#' data(testcase1)
 #' resRI <- findRI(Data = testcase1)
 #' print(resRI)
 #' plot(resRI, showPathol = FALSE)
 #' 
 #' # second example
-#' data(testcase2)
 #' resRI <- findRI(Data = testcase2)
 #' print(resRI, RIperc = c(0.025, 0.5, 0.975))
 #' plot(resRI, showPathol = FALSE)
 #' 
 #' # third example, with bootstrapping 
-#' data(testcase3)
 #' resRI <- findRI(Data = testcase3, NBootstrap = 30, seed = 123)
 #' print(resRI)
 #' getRI(resRI, RIperc = c(0.025, 0.5, 0.975), CIprop = 0.95, pointEst ="fullDataEst")
@@ -138,18 +160,16 @@ generateHistData <- function(x, ab, roundingBase) {
 #' plot(resRI)
 #' 
 #' # forth example, without values and pathological distribution in plot function 
-#' data(testcase4)
 #' resRI <- findRI(Data = testcase4)
 #' print(resRI)
 #' plot(resRI, showValue = FALSE, showPathol =FALSE) 
 #' 
 #' # fifth example, with bootstrapping
-#' data(testcase5)
 #' resRI <- findRI(Data = testcase5, NBootstrap = 30)
 #' plot(resRI,  RIperc = c(0.025, 0.5, 0.975), showPathol = FALSE, showCI = TRUE)
 #' }
 
-findRI <- function(Data = NULL, model = c("BoxCox", "modBoxCoxFast", "modBoxCox"), NBootstrap = 0, seed = 123,...) {
+findRI <- function(Data = NULL, model = c("BoxCox", "modBoxCoxFast", "modBoxCox"), NBootstrap = 0, seed = 123, ...) {
 
 	args = list(...)
 	
@@ -171,16 +191,25 @@ findRI <- function(Data = NULL, model = c("BoxCox", "modBoxCoxFast", "modBoxCox"
 		cat(paste0("\n Warning: Extremely large dataset (> 50'000'000), might lead to performance and memory complications!\n\n"))
 		
 	obj	  	   <- list()		
-	obj$Data   <- Data
+	obj$Data   <- Data	
 	# remove NAs
 	if(anyNA(obj$Data))
 		obj$Data <- obj$Data[!is.na(obj$Data)]	
 	
 	# remove negative values 
 	obj$Data <- obj$Data[obj$Data >= 0] 
-		
+	
+	# add input information
+	obj$Method         <- "refineR"
+	obj$PkgVersion     <- packageVersion("refineR")
+	obj$Model          <- model
+	obj$NBootstrap     <- NBootstrap
+	
 	# set all obj values for bootstrapping to NA
-	obj$LambdaBS <- obj$MuBS <- obj$SigmaBS <- obj$CostBS <- rep(NA, times = NBootstrap) 	
+	if (NBootstrap > 0) {
+		obj$seed            <- seed
+		obj$CostBS <- obj$ShiftBS <- obj$PBS <- obj$SigmaBS <- obj$MuBS <- obj$LambdaBS <- rep(NA, times = NBootstrap)         
+	}
 	
 	# define iteration indices
 	iterations <- 1:(NBootstrap+1)
@@ -254,6 +283,7 @@ findRI <- function(Data = NULL, model = c("BoxCox", "modBoxCoxFast", "modBoxCox"
 								   
 					bestParam <- testParam(lambdaVec = lambdaVec, bestParam = bestParam, Data = DataShifted, HistData = Hist, 
 										   startValues = startValsRefined, NIter = 8, alpha = 0.01, alphaMcb = 0.1)
+					 
 					
 					# check if costs have improved								
 					if(bestParam[5] < bestParamShifted[5])
@@ -289,10 +319,7 @@ findRI <- function(Data = NULL, model = c("BoxCox", "modBoxCoxFast", "modBoxCox"
 			obj$Cost	     <- res[[i]][5]
 			obj$abOr         <- res[[i]][7:8]
 			obj$roundingBase <- res[[i]][9]	
-			obj$rf			 <- res[[i]][6]
-			obj$Method	     <- "refineR"
-			obj$PkgVersion 	 <- packageVersion("refineR")
-			obj$Model		 <- model
+			obj$rf			 <- res[[i]][6]		
 		} else {
 			obj$LambdaBS[i-1] <- res[[i]][1]
 			obj$MuBS[i-1] 	  <- res[[i]][2]
@@ -304,13 +331,47 @@ findRI <- function(Data = NULL, model = c("BoxCox", "modBoxCoxFast", "modBoxCox"
 	}	
 	
 	# remove bootstrap samples with result NA
-	selNotNA     <- !is.na(obj$LambdaBS)
-	obj$LambdaBS <- obj$LambdaBS[selNotNA]
-	obj$MuBS     <- obj$MuBS[selNotNA]
-	obj$SigmaBS  <- obj$SigmaBS[selNotNA]
-	obj$PBS		 <- obj$PBS[selNotNA]
-	obj$ShiftBS  <- obj$ShiftBS[selNotNA]
-	obj$CostBS   <- obj$CostBS[selNotNA]	
+	selNotNA <- (!is.na(obj$MuBS) & !is.na(obj$SigmaBS) & !is.na(obj$LambdaBS) & !is.na(obj$ShiftBS))
+	
+	if(sum(selNotNA) > 0)
+	{
+		obj$LambdaBS <- obj$LambdaBS[selNotNA]
+		obj$MuBS     <- obj$MuBS[selNotNA]
+		obj$SigmaBS  <- obj$SigmaBS[selNotNA]
+		obj$PBS		 <- obj$PBS[selNotNA]
+		obj$ShiftBS  <- obj$ShiftBS[selNotNA]
+		obj$CostBS   <- obj$CostBS[selNotNA]	
+		
+		# find median model and parameters
+		RIperc <- c(0.025, 0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.975)
+		
+		RIBS <- matrix(NA, nrow=length(RIperc), ncol=length(obj$LambdaBS))
+				
+		for (i in 1:length(RIperc)) 
+		{							
+			# formula for truncated normal distribution
+			RIBS[i ,] <- pnorm(-1/obj$LambdaBS, mean=obj$MuBS, sd=obj$SigmaBS) + RIperc[i]*(1 - pnorm(-1/obj$LambdaBS, mean=obj$MuBS, sd=obj$SigmaBS))
+			RIBS[i ,] <- qnorm(RIBS[i ,], mean=obj$MuBS, sd=obj$SigmaBS)					
+				
+			for (l in 1:length(RIBS[i ,])) 
+			{			
+				RIBS[i, l]	<- max(0, invBoxCox(RIBS[i, l], obj$LambdaBS[l]) + obj$ShiftBS[l], na.rm = TRUE)
+			}				
+		}
+			
+		RIMed <- apply(X=RIBS, MARGIN=1, FUN=median)
+	
+		sumOfSqares <- apply(X=(RIBS-RIMed)^2, MARGIN=2, FUN=sum)
+		
+		indexMed <- which.min(sumOfSqares)[1]
+				
+		obj$LambdaMed <- obj$LambdaBS[indexMed]
+		obj$MuMed	  <- obj$MuBS[indexMed]
+		obj$SigmaMed  <- obj$SigmaBS[indexMed]
+		obj$PMed	  <- obj$PBS[indexMed]
+		obj$ShiftMed  <- obj$ShiftBS[indexMed]
+		obj$CostMed   <- obj$CostBS[indexMed]			
+	}	
 	
 	class(obj) <- "RWDRI"
 	
@@ -459,7 +520,7 @@ defineSearchRegions <- function(x, lambdaVec, roundingBase, abEst = NULL) {
 #' @param alphaMcb		(numeric) specifying the confidence level defining the maximal allowed counts below the asymmetric confidence region
 #' 
 #' @return (numeric) vector with best parameters for lambda, mu, sigma, P, cost. 
-#'
+#' 
 #'
 #' @author Tatjana Ammer \email{tatjana.ammer@@roche.com}
 
@@ -487,7 +548,7 @@ testParam <- function(lambdaVec, bestParam, Data, HistData, startValues, NIter, 
 		continueIteration = TRUE
 		while (continueIteration & iter <= NIter) {				
 
-			testedParam <- c(NA, NA, NA, NA, 1e9)
+			testedParam <- c(NA, NA, NA, NA, 1e9, NA)
 			muUnique    <- sort(unique(c(muUnique,    muVec)),    method="quick")
 			sigmaUnique <- sort(unique(c(sigmaUnique, sigmaVec)), method="quick")			
 			
@@ -505,6 +566,7 @@ testParam <- function(lambdaVec, bestParam, Data, HistData, startValues, NIter, 
 			if ((iter == 1) | (iter > 1 & !is.na(currentBestMu) & !is.na(currentBestSigma))) {
 				
 				testedParam <- calculateCostHist(lambda = lambda, muVec = muVec, sigmaVec = sigmaVec, HistData = HistData, alpha = alpha, alphaMcb = alphaMcb, pNormLookup = pNormLookup)
+				
 			}			
 			
 			# update currentBest Parameters is better parameters (smaller costs) are found
@@ -550,6 +612,8 @@ calculateCostHist <- function(lambda, muVec, sigmaVec, HistData, alpha = 0.01, a
 	breakL <- suppressWarnings(BoxCox(HistData$breakL, lambda))		
 	breakR <- suppressWarnings(BoxCox(HistData$breakR, lambda))		
 	
+	breakMinMax <- c(min(breakL), max(breakR))
+		
 	# parameters for pnormApprox function
 	oneOverH <- 1/pNormLookup$h
 	pNormVal <- pNormLookup$val
@@ -568,32 +632,43 @@ calculateCostHist <- function(lambda, muVec, sigmaVec, HistData, alpha = 0.01, a
 	
 	for (mu in muVec) {
 		for (sigma in sigmaVec)	{	
+			
 			# theoretical prediction of bin counts
-			countsPred <- HistData$NData*(pnormApprox(q = breakR, mean = mu, oneOverSd = 1/sigma, oneOverH = oneOverH, pNormVal = pNormVal) - pnormApprox(q = breakL, mean = mu, oneOverSd = 1/sigma, oneOverH = oneOverH, pNormVal = pNormVal))
+			pCorr <- pnorm(q=breakMinMax, mean=mu, sd=sigma)
+			pCorr <- 1/(pCorr[2]-pCorr[1])
+		
+			countsPred <- pCorr*HistData$NData*(pnormApprox(q = breakR, mean = mu, oneOverSd = 1/sigma, oneOverH = oneOverH, pNormVal = pNormVal) - pnormApprox(q = breakL, mean = mu, oneOverSd = 1/sigma, oneOverH = oneOverH, pNormVal = pNormVal))
 			countsPred[countsPred < 0] <- 0
 			
 			# precalculate sqrt of predicted counts
 			sqrtCountsPred <- sqrt(countsPred)
 						
 			# selection of bins that can be approximated by normal distribution
-			selectionCounts <- (countsPred >= 40)
+			selectionCounts <- (countsPred >= 20)
+			
 			# selection of peak bins (without first and last bin)
 			maxCountsPred   <- max(countsPred[2:length(countsPred)-1])
+			maxIndexPred 	<- which(abs(countsPred-maxCountsPred)<1e-20)[1]
+			
 			selectionPeak95 <- (countsPred >= 0.95*maxCountsPred)
-			selectionPeak95[length(selectionPeak95)] <- FALSE
-			selectionPeak95[1] <- FALSE
+			selectionPeak95[c(1, length(selectionPeak95))] <- FALSE	
 			
-			selectionPeak80   <- (countsPred >= 0.80*max(countsPred[2:length(countsPred)-1])) 
-			selectionPeak80[length(selectionPeak80)] <- FALSE
-			selectionPeak80[1] <- FALSE
+			selectionPeak80   <- (countsPred >= 0.80*maxCountsPred) 
+			selectionPeak80[c(1, length(selectionPeak80))] <- FALSE	
 			
+			selectionPeak20L <- (countsPred <= 0.20*maxCountsPred & (1:length(countsPred))<maxIndexPred)	
+			selectionPeak20L[1] <- TRUE
+			
+			selectionPeak20R <- (countsPred <= 0.20*maxCountsPred & (1:length(countsPred))>maxIndexPred)
+			selectionPeak20R[length(selectionPeak20R)] <- TRUE
+	
 			# lower 0.5% should not be negative, thus check if lowerBound is NA
 			RRLowerBound <- invBoxCox(mu-qNormFactor*sigma, lambda = lambda)		
 			
 			if (!is.na(sum(selectionCounts)) & sum(selectionCounts) > (HistData$NBins*HistData$overlapFactor)/16 &  !is.na(RRLowerBound)) {					
 				
 				# get sum of data points in specified region next to the peak for the actual data and the prediction
-				peakArea  <- getSumForPArea(pLimitMin = pLimitMin, pLimitMax = pLimitMax, countsPred = countsPred, HistData = HistData, lambda = lambda, mu = mu, sigma = sigma)								
+				peakArea  <- getSumForPArea(pLimitMin = pLimitMin, pLimitMax = pLimitMax, countsPred = countsPred, HistData = HistData, lambda = lambda, mu = mu, sigma = sigma, pCorr = pCorr)								
 				sumDataPeak <- peakArea$sumDataPeak
 				sumPredPeak <- peakArea$sumPredPeak	
 				
@@ -644,18 +719,17 @@ calculateCostHist <- function(lambda, muVec, sigmaVec, HistData, alpha = 0.01, a
 						sumSelectionEval  <- sum(selectionEval)
 						
 						# count number of bins that are at the peak and selected for evaluation
-						sumSelectionPeakEval  <- sum(selectionEval & selectionPeak95)
-						
-						sumCountsEval    <- sum(countsData[ selectionEval & selectionPeak80])
-						sumCountsNotEval <- sum(countsData[!selectionEval & selectionPeak80])
-						
-						ratioCounts80 	 <- max(0.01, min(1, sumCountsEval/sumCountsNotEval), na.rm=TRUE)^2
+						sumSelectionPeakEval  <- sum(selectionEval & selectionPeak95)						
 						
 						# decide if loop shall be continued...
 						continuePLoop <- (sum(rf*countsData < countsPredPLower) <= maxCountsBelow & PIndex < length(PVec))
 						# if expected number of bins are selected...
-						if (sumSelectionEval > (HistData$NBins*HistData$overlapFactor)/32 & (sumSelectionPeakEval>=(0.2*(sum(selectionPeak95))) | sum(selectionPeak95) ==1)) 
-						{						
+						if (sumSelectionEval > (HistData$NBins*HistData$overlapFactor)/32 & (sumSelectionPeakEval>=(0.2*(sum(selectionPeak95))) | sum(selectionPeak95)==1)) 
+						{							
+							ratioCounts80  <- max(0.01, min(1, sum(countsData[selectionEval & selectionPeak80])/sum(countsData[!selectionEval & selectionPeak80]), na.rm=TRUE))^2							
+							ratioCounts20L <- max(0.01, min(1, sum(rf*countsData[selectionPeak20L])/sum(countsPredP[selectionPeak20L]), na.rm=TRUE))^2
+							ratioCounts20R <- max(0.01, min(1, sum(rf*countsData[selectionPeak20R])/sum(countsPredP[selectionPeak20R]), na.rm=TRUE))^2
+							
 							# extract data of selection
 							cData 	 <- rf*countsData[selectionEval]								
 							cPred 	 <- countsPredP[selectionEval]						
@@ -665,20 +739,20 @@ calculateCostHist <- function(lambda, muVec, sigmaVec, HistData, alpha = 0.01, a
 							# calculate costs (negative log likelihood with regularization term)											
 							
 							# identical to the approximation with dnorm(), but faster
-							cost <- -(costPreSum + sumSelectionEval*log(ratioCounts80) + sum(-0.5*(cData-cPred)^2/cPred))/sqrt(sumSelectionEval) 
+							cost <- -(costPreSum + sumSelectionEval*(log(ratioCounts80)+log(ratioCounts20L)+log(ratioCounts20R)) + sum(-0.5*(cData-cPred)^2/cPred))/sqrt(sumSelectionEval)
 							
-							### derivation of faster cost function calculation 
+#							### derivation of faster cost function calculation 
 							
 							# original costs with poisson distribution based on statistical assumption of histogram data, with additional regularization
-							# pois 	    <- dpois(x = round(cData*rf), lambda = cPred*rf)*cPred*rf*ratioCounts80
+							# pois 	    <- dpois(x = round(cData*rf), lambda = cPred*rf)*cPred*rf*ratioCounts80*ratioCounts20L*ratioCounts20R
 							
 							# very good approximation of calculation of likelihood (with regularization term)
-							# pois <- dnorm(x=cData*rf, mean=cPred*rf, sd=sqrt(cPred*rf))*cPred*rf*ratioCounts80			
+							# pois <- dnorm(x=cData*rf, mean=cPred*rf, sd=sqrt(cPred*rf))*cPred*rf*ratioCounts80*ratioCounts20L*ratioCounts20R			
 							
 							# rearrange equation
-							# cost <- -sum(log(dnorm(x=cData, mean=cPred, sd=sqrt(cPred))*cPred*ratioCounts80)/sqrt(sumSelectionEval))
-							# cost <- -(  sumSelectionEval*log(ratioCounts80) + sum(log(sqrt((P*rf)/(2*pi))*sqrtCountsPred[selectionEval])) +sum((-0.5*(cData - cPred)^2)/cPred ))/sqrt(sumSelectionEval)
-							# cost <- -(  sumSelectionEval*log(ratioCounts80) + costPreSum) +sum((-0.5*(cData - cPred)^2)/cPred ))/sqrt(sumSelectionEval)				
+							# cost <- -sum(log(dnorm(x=cData, mean=cPred, sd=sqrt(cPred))*cPred*ratioCounts80*ratioCounts20L*ratioCounts20R)/sqrt(sumSelectionEval))
+							# cost <- -(  sumSelectionEval*(log(ratioCounts80)+ratioCounts20L+ratioCounts20R) + sum(log(sqrt((P*rf)/(2*pi))*sqrtCountsPred[selectionEval])) +sum((-0.5*(cData - cPred)^2)/cPred ))/sqrt(sumSelectionEval)
+							# cost <- -(  sumSelectionEval*(log(ratioCounts80)+ratioCounts20L+ratioCounts20R) + costPreSum) +sum((-0.5*(cData - cPred)^2)/cPred ))/sqrt(sumSelectionEval)				
 							
 							# update best cost
 							if (!is.na(cost) & cost < bestParam[5]) {						
@@ -893,12 +967,13 @@ optimizeGrid <- function(currentBestParam, paramUnique, iter, sigmLimit = TRUE) 
 #' @param lambda			(numeric) transformation parameter for inverse Box-Cox transformation
 #' @param mu				(numeric) parameter of the mean of non-pathological distribution 
 #' @param sigma				(numeric) parameter of the standard deviation of non-pathological distribution
+#' @param pCorr				(numeric) correcting the cumulative probability of the truncated non-pathological distribution
 #'  
 #' @return (list) with two numeric vectors specifying the amount of observed and estimated data points surrounding the peak 
 #'
 #' @author Tatjana Ammer \email{tatjana.ammer@@roche.com}
 
-getSumForPArea <- function(pLimitMin, pLimitMax, countsPred, HistData, lambda, mu, sigma) {
+getSumForPArea <- function(pLimitMin, pLimitMax, countsPred, HistData, lambda, mu, sigma, pCorr) {
 	
 	N <- length(countsPred)
 	
@@ -971,8 +1046,8 @@ getSumForPArea <- function(pLimitMin, pLimitMax, countsPred, HistData, lambda, m
 	}
 	
 	#get predicted counts at peak and in the regions next to the peak
-	sumPredPeak <- HistData$NData*(pnorm(q=BoxCox(borderRvec, lambda), mean = mu, sd = sigma) - pnorm(q = BoxCox(borderLvec, lambda), mean = mu, sd = sigma))
-	sumPredPeak[sumPredPeak == 0.0] <- 1
+	sumPredPeak <- pCorr*HistData$NData*(pnorm(q=BoxCox(borderRvec, lambda), mean = mu, sd = sigma) - pnorm(q = BoxCox(borderLvec, lambda), mean = mu, sd = sigma))
+	sumPredPeak[abs(sumPredPeak) < 1e-20] <- 1
 	
 	return(list(sumDataPeak = sumDataPeak, sumPredPeak = sumPredPeak))	
 }
@@ -1050,7 +1125,7 @@ findMainPeak <- function(x, ab, mStart, withHeight = FALSE, prevPeak =NULL) {
 	}
 	
 	#get index of peak in area with biggest surface
-	peakInd <- min(length(qDensFullTr$x)-1, max(2, peaks[which.max(area+height95-locPrevP)]))
+	peakInd <- min(length(qDensFullTr$x)-1, max(2, peaks[which.max(area+height95-locPrevP)]))	
 	modEst 	<- sum(qDensFullTr$x[peakInd+c(-1:1)]*qDensFullTr$y[peakInd+c(-1:1)])/sum(qDensFullTr$y[peakInd+c(-1:1)])	
 	
 	# select region around peak for stronger smoothing
@@ -1204,7 +1279,7 @@ estimateAB <- function(x) {
 		y <- pmin(pmax(y, 0), 1)
 		
 		propLowDens <- sum(y)/length(y)
-				
+		
 		if((iter==1 | propLowDens>0.85) & propLowDens<0.86)	{
 			continueABLoop <- FALSE
 			abHist 		   <- abOpt						
@@ -1215,8 +1290,7 @@ estimateAB <- function(x) {
 			
 		} else if(propLowDens<=0.85) {
 			abOpt[2]    <- abOpt[2] + stepSize
-			
-		}				
+		}
 		
 		stepSize <- stepSize/2
 		iter 	 <- iter + 1	
@@ -1244,8 +1318,8 @@ estimateAB <- function(x) {
 	
 		continueABLoop <- TRUE
 		
-		for(i in 1:length(yLeft)) {		
-				
+		for(i in 1:length(yLeft)) {	
+			
 			if(yLeft[i]<0.5*yMax & yLeft[i]<yMin)
 				yMin <- yLeft[i]
 			

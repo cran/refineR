@@ -8,8 +8,8 @@ getRI(
   x,
   RIperc = c(0.025, 0.975),
   CIprop = 0.95,
-  pointEst = c("fullDataEst", "medianBS", "meanBS"),
-  Scale = c("original", "transformed")
+  pointEst = c("fullDataEst", "medianBS"),
+  Scale = c("original", "transformed", "zScore")
 )
 }
 \arguments{
@@ -20,10 +20,9 @@ getRI(
 \item{CIprop}{(numeric) value specifying the central region for estimation of confidence intervals}
 
 \item{pointEst}{(character) specifying the point estimate determination: (1) using the full dataset ("fullDataEst"),
-(2) calculating the median from all bootstrap samples ("medianBS"), (2) works only if NBootstrap > 0
-(3) calculating the mean from all bootstrap samples ("meanBS"), (3) works only if NBootstrap > 0}
+(2) calculating the median model from all bootstrap samples ("medianBS"), (2) works only if NBootstrap > 0}
 
-\item{Scale}{(character) specifying if percentiles are calculated on the original scale ("Or") or the transformed scale ("Tr")}
+\item{Scale}{(character) specifying if percentiles are calculated on the original scale ("or") or the transformed scale ("tr") or the z-Score scale ("z")}
 }
 \value{
 (data.frame) with columns for percentile, point estimate and confidence intervals.

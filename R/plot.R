@@ -1,18 +1,17 @@
 #' Standard plot method for objects of class 'RWDRI'
 #' 
 #' @param x				(object) of class 'RWDRI'
-#' @param Scale			(character) specifying if the plot is generated on the original scale ("original") or the transformed scale ("transformed")
+#' @param Scale			(character) specifying if percentiles are calculated on the original scale ("or") or the transformed scale ("tr") or the z-Score scale ("z")
 #' @param RIperc		(numeric) value specifying the percentiles, which define the reference interval (default c(0.025, 0.975))
 #' @param Nhist			(integer) number of bins in the histogram (derived automatically if not set)
 #' @param showCI		(logical) specifying if the confidence intervals are shown
 #' @param showPathol	(logical) specifying if the estimated pathological distribution shall be shown
-#' @param scalePathol	(logical) specifying if the estimated pathological distribution shall be weighted with the ratio of pathol/non-pathol
+#' @param scalePathol	(logical) specifying if the estimated pathological distribution shall be weighted with the ration of pathol/non-pathol
 #' @param showBSModels	(logical) specifying if the estimated bootstrapping models shall be shown
 #' @param showValue		(logical) specifying if the exact value of the estimated reference intervals shall be shown above the plot 
 #' @param CIprop		(numeric) value specifying the central region for estimation of confidence intervals
 #' @param pointEst		(character) specifying the point estimate determination: (1) using the full dataset ("fullDataEst"),
-#' 						(2) calculating the median from all bootstrap samples ("medianBS"), (2) works only if NBootstrap > 0,
-#' 						(3) calculating the mean from all bootstrap samples ("meanBS"), (3) works only if NBootstrap > 0
+#' 						(2) calculating the median model from the bootstrap samples ("medianBS"), (2) works only if NBootstrap > 0
 #' @param xlim			(numeric) vector specifying the limits in x-direction	
 #' @param ylim			(numeric) vector specifying the limits in y-direction	
 #' @param xlab			(character) specifying the x-axis label	
@@ -20,55 +19,125 @@
 #' @param title			(character) specifying plot title
 #' @param ...			additional arguments passed forward to other functions
 #' 
-#' @return				No return value. Instead, a plot is generated.
+#' @return				The applied plot limits in x-direction (xlim) are returned.
 #' 
 #' @author Christopher Rank \email{christopher.rank@@roche.com}, Tatjana Ammer \email{tatjana.ammer@@roche.com}
 #' 
 #' @method plot RWDRI
 
-plot.RWDRI <- function(x, Scale = c("original", "transformed"), RIperc = c(0.025, 0.975), Nhist = 60, showCI = TRUE, showPathol = FALSE, scalePathol = TRUE, showBSModels = FALSE, showValue = TRUE, 
-					   CIprop = 0.95, pointEst = c("fullDataEst", "medianBS", "meanBS"), xlim = NULL, ylim = NULL, xlab = NULL, ylab = NULL, title = NULL, ...) {	
-				   
+plot.RWDRI <- function(x, Scale = c("original", "transformed", "zScore"), RIperc = c(0.025, 0.975), Nhist = 60, showCI = TRUE, showPathol = FALSE, scalePathol = TRUE, showBSModels = FALSE, showValue = TRUE,
+		CIprop = 0.95, pointEst = c("fullDataEst", "medianBS"), xlim = NULL, ylim = NULL, xlab = NULL, ylab = NULL, title = NULL, ...) {	
+	
 	stopifnot(class(x) == "RWDRI")
-	stopifnot(!is.null(x$Data))	
-	Scale    <- match.arg(Scale[1], choices = c("original", "transformed"))
-	pointEst <- match.arg(pointEst[1], choices = c("fullDataEst", "medianBS", "meanBS"))
+	stopifnot(!is.null(x$Data))		
+	Scale    <- match.arg(Scale[1], choices = c("original", "transformed", "zScore"))
+	stopifnot(is.numeric(RIperc) & min(RIperc)>=0 & max(RIperc)<=1)
+	stopifnot(is.numeric(CIprop) & length(CIprop)==1 & CIprop>=0 & CIprop<=1)
+	stopifnot(is.numeric(Nhist) & Nhist%%1==0 & Nhist>0)
+	pointEst <- match.arg(pointEst[1], choices = c("fullDataEst", "medianBS"))
+	stopifnot(is.null(xlim) | (is.numeric(xlim) & length(xlim)==2))
+	stopifnot(is.null(ylim) | (is.numeric(ylim) & length(ylim)==2))
+	stopifnot(is.logical(showCI))
+	stopifnot(is.logical(showPathol))
+	stopifnot(is.logical(scalePathol))
+	stopifnot(is.logical(showBSModels))
+	stopifnot(is.logical(showValue))
 	
 	modelFound   <- (!is.na(x$Mu) & !is.na(x$Sigma) & !is.na(x$Lambda) & !is.na(x$Shift))
-	BSPerformed  <- (Scale == "original" & modelFound & length(x$MuBS) > 0 & length(x$SigmaBS) > 0 & length(x$LambdaBS) > 0 & length(x$ShiftBS) > 0)
-	showBSModels <- ifelse(BSPerformed, showBSModels, FALSE)
-			
+	BSPerformed  <- (modelFound & length(x$MuBS) > 0 & length(x$SigmaBS) > 0 & length(x$LambdaBS) > 0 & length(x$ShiftBS) > 0)
+	showBSModels <- ifelse(BSPerformed & Scale=="original", showBSModels, FALSE)
+	
 	# extract binned data
 	Data <- x$Data		
 	
-	if (is.null(x$abOr) & !modelFound)
-		ab <- as.numeric(quantile(x = Data, probs = c(0.005, 0.995), na.rm = TRUE))
-	else
-		ab <- x$abOr + x$Shift
-	
-	if (Scale == "transformed" & modelFound) {
-		Data <- suppressWarnings(BoxCox(Data - x$Shift, x$Lambda))				
-		Data <- Data[!is.na(Data) & is.finite(Data)]			
-		
-		ab <- range(Data)
+	# extract model parameters
+	if(modelFound)
+	{
+		lambda <- ifelse(pointEst=="medianBS" & BSPerformed, x$LambdaMed, x$Lambda)
+		mu 	   <- ifelse(pointEst=="medianBS" & BSPerformed, x$MuMed, 	  x$Mu)
+		sigma  <- ifelse(pointEst=="medianBS" & BSPerformed, x$SigmaMed,  x$Sigma)
+		shift  <- ifelse(pointEst=="medianBS" & BSPerformed, x$ShiftMed,  x$Shift)	
+		P	   <- ifelse(pointEst=="medianBS" & BSPerformed, x$PMed,  	  x$P)
 	}
 	
 	# calculate reference intervals
-	RI <- getRI(x = x, RIperc = RIperc, CIprop = CIprop, pointEst = pointEst, Scale = Scale)	
-		
+	RI <- getRI(x = x, RIperc = RIperc, CIprop = CIprop, pointEst = pointEst, Scale = Scale)
+	
 	if (is.null(xlab))	
 		xlab <- "Concentration [Units]"
 	
 	if (is.null(ylab))	
 		ylab <- "Frequency"
+		
+	# transform data to the correct scale
+	if(modelFound & (Scale == "transformed" | Scale == "zScore"))
+	{
+		Data <- suppressWarnings(BoxCox(Data - shift, lambda))				
+		Data <- Data[!is.na(Data) & is.finite(Data)]			
+		
+		if(Scale == "zScore")
+			Data <- (Data - mu) / sigma		
+	}	
 	
+	# determine reasonable xlim
 	if (is.null(xlim))
-		xlim <- range(c(ab, 0.98*min(RI$PointEst), 0.95*RI$CILow, 1.1*max(RI$PointEst), 1.02*RI$CIHigh), na.rm = TRUE)
+	{
+		if (!modelFound)
+		{
+			rangeData <- as.numeric(quantile(x = Data, probs = c(0.005, 0.995), na.rm = TRUE))
+			rangeData <- rangeData + c(-0.02, 0.02)*diff(rangeData)
+			
+		} else if(modelFound & (Scale == "transformed" | Scale == "zScore"))
+		{						
+			rangeData <- as.numeric(quantile(x = Data, probs = c(0.001, 0.999), na.rm = TRUE))
+			
+		} else
+		{				
+			# calculate skewness of distribution
+			skewnessRatio <- diff(getRI(x, RIperc=c(0.025, 0.5, 0.975))$PointEst)
+			skewnessRatio <- min(1, sqrt(skewnessRatio[1]/skewnessRatio[2]))
+			
+			# estimate appropriate concentration range for distribution
+			perc595 <- getRI(x, RIperc=c(0.05, 0.95-0.04*(1-skewnessRatio)))$PointEst	
+			rangeData <- perc595 + c(-1, 1)*1.05*diff(perc595)
+			
+			# determine appropriate min and max of dataset
+			minData <- max(1e-20, quantile(x=Data, probs=0.005, na.rm=TRUE))
+			maxData <- quantile(x=Data, probs=0.995, na.rm=TRUE)
+			
+			# shift range outside of the NP distribution to the right or left when covered by the dataset
+			if(rangeData[1] < minData)
+			{
+				rangeData[2] <- min(rangeData[2]+minData-rangeData[1], maxData)
+				rangeData[1] <- minData			
+			}
+			
+			if(rangeData[2] > maxData)
+			{
+				rangeData[1] <- max(rangeData[1]+maxData-rangeData[2], minData)
+				rangeData[2] <- maxData
+			}			
+		
+			rangeData <- rangeData + c(-0.02, 0.02)*diff(rangeData)		
+			rangeData[2] <- min(max(Data), rangeData[2])
+		}
+		
+		rangePE <- range(RI$PointEst)
+		rangePE <- rangePE + c(-0.06, 0.06)*diff(rangePE)
+		
+		rangeCI	<- range(RI$CILow, RI$CIHigh)
+		rangeCI <- rangeCI + c(-0.03, 0.03)*diff(rangeCI)
+		
+		xlim <- range(rangeData, rangePE, rangeCI, na.rm=TRUE)
+		
+		if(Scale == "original")
+			xlim[1] <- max(xlim[1], 1e-20)		
+	}		
 	
 	if (is.null(title))
-		title <- paste0("Estimated Reference Interval")	
+		title <- paste0("Estimated Reference Interval")		
 	
-	if(is.na(x$roundingBase) | Scale == "transformed")
+	if(is.na(x$roundingBase) | Scale == "transformed" | Scale == "zScore")
 	{
 		# generate histogram of data
 		increment  <- diff(xlim)/Nhist	
@@ -85,7 +154,7 @@ plot.RWDRI <- function(x, Scale = c("original", "transformed"), RIperc = c(0.025
 		hist2  	   <- hist(Data[Data >= min(breaks2) & Data <= max(breaks2)], breaks = breaks2, plot = FALSE)	
 		countsData <- c(hist1$counts, hist2$counts)
 		mids 	   <- c(hist1$mids, hist2$mids)	
-				
+		
 		# sort vectors in increasing order
 		sortIndex  <- sort(mids, index.return = TRUE)$ix
 		countsData <- countsData[sortIndex]
@@ -96,23 +165,23 @@ plot.RWDRI <- function(x, Scale = c("original", "transformed"), RIperc = c(0.025
 		hist1$counts  <- countsData
 		hist1$density <- countsData/sum(countsData)
 		hist1$mids    <- mids	
-			
+		
 		breakL 	   <- breakLBS <- c(breaks1[1:(length(breaks1)-1)], breaks2[1:(length(breaks2)-1)])
 		breakR 	   <- breakRBS <- c(breaks1[2:length(breaks1)], 	breaks2[2:length(breaks2)])
-	
+		
 	} else
 	{		
 		xlimDiff <- diff(xlim)
 		binSize <- x$roundingBase*max(1, round(xlimDiff/x$roundingBase/Nhist))
-			
+		
 		# adapt xlim	
 		xlim[1] <- max(0.5*x$roundingBase, round(xlim[1]/x$roundingBase)*x$roundingBase - 0.5*x$roundingBase)		
 		xlim[2] <- xlim[1] + ceiling(xlimDiff/binSize)*binSize
 		
 		breaks1 <- seq(from=xlim[1], to=xlim[2], by=binSize)
-				
+		
 		hist1  	   <- hist(Data[Data >= min(breaks1) & Data <= max(breaks1)], breaks = breaks1, plot = FALSE)
-				
+		
 		sortIndex  <- 1:length(hist1$mids)
 		mids	   <- hist1$mids 
 		countsData <- hist1$counts
@@ -123,21 +192,25 @@ plot.RWDRI <- function(x, Scale = c("original", "transformed"), RIperc = c(0.025
 	
 	# Box Cox transformation of histogram breaks and histogram range
 	if (Scale == "original" & modelFound) {		
-		breakL 	  <- suppressWarnings(BoxCox(breakL-x$Shift, x$Lambda))		
-		breakR 	  <- suppressWarnings(BoxCox(breakR-x$Shift, x$Lambda))	
+		breakL 	  <- suppressWarnings(BoxCox(breakL-shift, lambda=lambda))		
+		breakR 	  <- suppressWarnings(BoxCox(breakR-shift, lambda=lambda))	
 	}		
-		
+	
 	# calculate curves of BS models
-	if (BSPerformed & (showBSModels | pointEst!="fullDataEst"))	
+	if (BSPerformed & showBSModels)	
 	{
 		countsPredBS <- matrix(NA, nrow=length(breakLBS), ncol=length(x$MuBS))
 		
 		for(i in 1:length(x$MuBS))
-		{		
-			breakLBS_i <- suppressWarnings(BoxCox(breakLBS-x$ShiftBS[i], x$LambdaBS[i]))		
-			breakRBS_i <- suppressWarnings(BoxCox(breakRBS-x$ShiftBS[i], x$LambdaBS[i]))
-			
-			tempCountsPredBS <- length(Data)*x$PBS[i]*(pnorm(q = breakRBS_i, mean = x$MuBS[i], sd = x$SigmaBS[i]) - pnorm(q = breakLBS_i, mean = x$MuBS[i], sd = x$SigmaBS[i]))			
+		{			
+			breakLBS_i <- suppressWarnings(BoxCox(breakLBS-x$ShiftBS[i], lambda=x$LambdaBS[i]))		
+			breakRBS_i <- suppressWarnings(BoxCox(breakRBS-x$ShiftBS[i], lambda=x$LambdaBS[i]))
+										
+			pCorrBS <- BoxCox(c(max(min(x$Data-x$ShiftBS[i]), 1e-20), min(max(x$Data-x$ShiftBS[i]), 1e20)), lambda=x$LambdaBS[i])				
+			pCorrBS <- pnorm(q=pCorrBS, mean=x$MuBS[i], sd=x$SigmaBS[i])
+			pCorrBS <- 1/(pCorrBS[2]-pCorrBS[1])
+		
+			tempCountsPredBS <- pCorrBS*length(Data)*x$PBS[i]*(pnorm(q = breakRBS_i, mean = x$MuBS[i], sd = x$SigmaBS[i]) - pnorm(q = breakLBS_i, mean = x$MuBS[i], sd = x$SigmaBS[i]))			
 			tempCountsPredBS[tempCountsPredBS < 0] <- 0
 			
 			tempCountsPredBS  <- tempCountsPredBS[sortIndex]	
@@ -148,28 +221,20 @@ plot.RWDRI <- function(x, Scale = c("original", "transformed"), RIperc = c(0.025
 	
 	maxPred <- NA 
 	
-	if (modelFound) {
+	if (modelFound) {			
+				
+		pCorr <- BoxCox(c(max(min(x$Data-shift), 1e-20), min(max(x$Data-shift), 1e20)), lambda=lambda)				
+		pCorr <- pnorm(q=pCorr, mean=mu, sd=sigma)
+		pCorr <- 1/(pCorr[2]-pCorr[1])
+			
+		if(Scale == "zScore")
+			countsPred <- pCorr*length(Data)*P*(pnorm(q = breakR, mean = 0, sd = 1) - pnorm(q = breakL, mean = 0, sd = 1))
+		else
+			countsPred <- pCorr*length(Data)*P*(pnorm(q = breakR, mean = mu, sd = sigma) - pnorm(q = breakL, mean = mu, sd = sigma))			
 		
-		# theoretical prediction of bin counts
-		countsPred <- length(Data)*x$P*(pnorm(q = breakR, mean = x$Mu, sd = x$Sigma) - pnorm(q = breakL, mean = x$Mu, sd = x$Sigma))			
 		countsPred[countsPred < 0] <- 0
 		
-		countsPred 	<- countsPred[sortIndex]
-				
-		# replace by median or mean curve
-		if (BSPerformed & pointEst!="fullDataEst") {
-			
-			for (i in 1:length(countsPred)) {
-				
-				if (pointEst=="medianBS") {
-					countsPred[i] <- median(countsPredBS[i, ], na.rm = TRUE)					
-				} 		
-				if (pointEst=="meanBS") {
-					countsPred[i] <- mean(countsPredBS[i, ], na.rm = TRUE)					
-				}				
-			}			
-		}		
-			
+		countsPred 	<- countsPred[sortIndex]		
 		maxPred 	<- max(countsPred)
 		
 		# calculate difference of counts
@@ -191,10 +256,10 @@ plot.RWDRI <- function(x, Scale = c("original", "transformed"), RIperc = c(0.025
 	}	
 	
 	plot(hist1, freq = TRUE, border = NA, col = "grey80", main = title, xaxt = 'n', yaxt = 'n', xlab = xlab, ylab = ylab, xlim = xlim, ylim = ylim, cex.main = 1.3, cex.lab = 1.05)
-		
+	
 	axis(1, at = pretty(xlim, n = 10), cex.axis = 0.85)
 	axis(2, at = pretty(ylim), las = 1, cex.axis = ifelse(2/3*max(ylim) < 1e5, 0.75, 0.70), mgp = c(3, ifelse(2/3*max(ylim) < 1e4, 1.0, 0.8), 0))
-		
+	
 	# add curves of BS models
 	if (showBSModels) {
 		for (i in 1:length(x$MuBS)) {
@@ -228,14 +293,20 @@ plot.RWDRI <- function(x, Scale = c("original", "transformed"), RIperc = c(0.025
 		}	
 		
 		abline(v = RI$PointEst, lwd = 2, lty = 2, col = "green3")	
+			
+		selection <- which(RI$PointEst>par("usr")[1] & RI$PointEst<par("usr")[2])
 		
-		adjust <- rep(0.5, times = length(RIperc))
-		adjust[RI$Percentile < 0.5] <- 1
-		adjust[RI$Percentile > 0.5] <- 0
-		
-		if (showValue)
-			mtext(text = signif(RI$PointEst, 3), at = RI$PointEst, col = "green3", cex = 1.0, adj = adjust)
+		if(showValue & length(selection)>0)
+		{			
+			adjust <- rep(0.5, times = length(RIperc))
+			adjust[RI$Percentile < 0.5] <- 1
+			adjust[RI$Percentile > 0.5] <- 0
+			
+			mtext(text = signif(RI$PointEst[selection], 3), at = RI$PointEst[selection], col = "green3", cex = 1.0, adj = adjust[selection])
+		}			
 	}
+	
+	return(invisible(xlim))
 }
 
 

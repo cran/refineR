@@ -5,7 +5,7 @@
 #' Ground Truth for reference intervals (2.5\% perc., 97.5\% perc): [10.2, 29.8]
 #' 
 #' @format Numeric vector with data points.  
-#' @usage  data(testcase1)
+#' @usage  testcase1
 #' 
 "testcase1"
 
@@ -16,7 +16,7 @@
 #' Ground Truth for reference intervals (2.5\% perc., 97.5\% perc): [59.8, 160]
 #' 
 #' @format Numeric vector with data points.  
-#' @usage  data(testcase2)
+#' @usage  testcase2
 #' 
 "testcase2"
 
@@ -27,7 +27,7 @@
 #' Ground Truth for reference intervals (2.5\% perc., 97.5\% perc): [9.04, 13]
 #' 
 #' @format Numeric vector with data points.  
-#' @usage  data(testcase3)
+#' @usage  testcase3
 #' 
 "testcase3"
 
@@ -38,7 +38,7 @@
 #' Ground Truth for reference intervals (2.5\% perc., 97.5\% perc): [10, 50] 
 #' 
 #' @format Numeric vector with data points.  
-#' @usage  data(testcase4)
+#' @usage  testcase4
 #' 
 "testcase4"
 
@@ -49,6 +49,6 @@
 #' Ground Truth for reference intervals (2.5\% perc., 97.5\% perc): [0.25, 4]
 #' 
 #' @format Numeric vector with data points.  
-#' @usage  data(testcase5)
+#' @usage  testcase5
 #' 
 "testcase5"

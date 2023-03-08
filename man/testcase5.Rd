@@ -8,7 +8,7 @@
 Numeric vector with data points.
 }
 \usage{
-data(testcase5)
+testcase5
 }
 \description{
 This dataset consists of N = 250,000 simulated measurements with 80\% non-pathological and 20\% pathological samples. 

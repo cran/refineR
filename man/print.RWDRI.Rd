@@ -8,7 +8,7 @@
   x,
   RIperc = c(0.025, 0.975),
   CIprop = 0.95,
-  pointEst = c("fullDataEst", "medianBS", "meanBS"),
+  pointEst = c("fullDataEst", "medianBS"),
   ...
 )
 }
@@ -20,8 +20,7 @@
 \item{CIprop}{(numeric) value specifying the central region for estimation of confidence intervals}
 
 \item{pointEst}{(character) specifying the point estimate determination: (1) using the full dataset ("fullDataEst"),
-(2) calculating the median from all bootstrap samples ("medianBS"), (2) works only if NBootstrap > 0
-(3) calculating the mean from all bootstrap samples ("meanBS"), (3) works only if NBootstrap > 0}
+(2) calculating the median model from all bootstrap samples ("medianBS"), (2) works only if NBootstrap > 0}
 
 \item{...}{additional arguments passed forward to other functions.}
 }

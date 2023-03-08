@@ -1,10 +1,29 @@
+# refineR version 1.6.0
+
+The new version includes the following updates and improvements: 
+
+* Using the truncated normal distribution now as basic model assumption 
+
+* Additional regularization term in cost function to control the fit at the tails of the distribution
+
+* The median bootstrapping model (pointEst="medianBS") now corresponds to one parametric model selected from all bootstrapping models
+
+* Some modifications in plot function, e.g. adjusted default `xlim`
+ 
+* Slight modification of print function
+ 
+* RIbench benchmark score: 0.307, Failure rate: 0.0, Implausible Results: 0.122%  
+
+
 # refineR version 1.5.1
 
 The new version includes the following updates and improvements: 
 
-* Adjusted detection of rounding to now also handle data not rounded to the power of 10 (e.g. data that was rounded prior to unit conversion)
+* Adjusted computation of the `roundingBase` to now also handle data not rounded to  power of 10 (e.g. data that was rounded prior to unit conversion)
 
-* Added a vignette ('refineR_package') demonstrating the main functions of the package
+* Vignette ('refineR_package') demonstrating the main functions of the package
+
+* RIbench benchmark score: 0.307, Failure rate: 0.0, Implausible Results: 0.625%  
 
 
 # refineR version 1.5.0 
@@ -17,13 +36,15 @@ The new version includes the following updates and improvements:
   (`findRI(Data = Data, model = "modBoxCox")`)
   
 * Update of calculation of costs: new factor to account for small deviations from the assumption of a unimodal distribution of non-pathological samples
-	
+	   
 * Adapted definition of region of test results that characterizes the
   non-pathological distribution 
   
 * Improved performance for skewed distributions 
 
-
+* RIbench benchmark score: 0.307, Failure rate: 0.0, Implausible Results: 0.625%  
+Detailed description can be found in   Ammer, T., Ammer, T.,Schuetzenmeister, A., Prokosch, HU.,  Zierk, J., Rank, C.M., Rauh, M. RIbench: A Proposed Benchmark for the Standardized Evaluation of Indirect Methods for Reference Interval Estimation. Clinical Chemistry (2022) 
+  
 
 # refineR version 1.0.0 
 

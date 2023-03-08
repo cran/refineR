@@ -40,19 +40,16 @@ distribution of the physiological values and thus separates pathological from no
 
 # first example
 \donttest{
-data(testcase1)
 resRI <- findRI(Data = testcase1)
 print(resRI)
 plot(resRI, showPathol = FALSE)
 
 # second example
-data(testcase2)
 resRI <- findRI(Data = testcase2)
 print(resRI, RIperc = c(0.025, 0.5, 0.975))
 plot(resRI, showPathol = FALSE)
 
 # third example, with bootstrapping 
-data(testcase3)
 resRI <- findRI(Data = testcase3, NBootstrap = 30, seed = 123)
 print(resRI)
 getRI(resRI, RIperc = c(0.025, 0.5, 0.975), CIprop = 0.95, pointEst ="fullDataEst")
@@ -60,13 +57,11 @@ getRI(resRI, RIperc = c(0.025, 0.5, 0.975), CIprop = 0.95, pointEst ="medianBS")
 plot(resRI)
 
 # forth example, without values and pathological distribution in plot function 
-data(testcase4)
 resRI <- findRI(Data = testcase4)
 print(resRI)
 plot(resRI, showValue = FALSE, showPathol =FALSE) 
 
 # fifth example, with bootstrapping
-data(testcase5)
 resRI <- findRI(Data = testcase5, NBootstrap = 30)
 plot(resRI,  RIperc = c(0.025, 0.5, 0.975), showPathol = FALSE, showCI = TRUE)
 }

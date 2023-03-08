@@ -14,8 +14,8 @@ and tries to find a model that best explains the non-pathological distribution. 
  \tabular{ll}{     
  Package: \tab refineR\cr
  Type: \tab Package \cr     
- Version: \tab 1.5.1 \cr     
- Date: \tab 2022-07-19 \cr
+ Version: \tab 1.6.0 \cr     
+ Date: \tab 2023-03-06 \cr
  License: \tab GPL (>=3) \cr     
  LazyLoad: \tab yes \cr   
  } 

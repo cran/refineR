@@ -129,7 +129,7 @@ findRoundingBase <- function(x) {
 			}                
 		}        
 	}    
-	
+		
 	# select differences that occur in >= 10% of cases
 	diffVal  <- diffVal[diffVal>=0.1*sum(diffVal)]
 	
@@ -152,64 +152,76 @@ findRoundingBase <- function(x) {
 #' @param RIperc		(numeric) value specifying the percentiles, which define the reference interval
 #' @param CIprop		(numeric) value specifying the central region for estimation of confidence intervals
 #' @param pointEst		(character) specifying the point estimate determination: (1) using the full dataset ("fullDataEst"),
-#' 						(2) calculating the median from all bootstrap samples ("medianBS"), (2) works only if NBootstrap > 0
-#' 						(3) calculating the mean from all bootstrap samples ("meanBS"), (3) works only if NBootstrap > 0
-#' @param Scale			(character) specifying if percentiles are calculated on the original scale ("Or") or the transformed scale ("Tr")
+#' 						(2) calculating the median model from all bootstrap samples ("medianBS"), (2) works only if NBootstrap > 0 						
+#' @param Scale			(character) specifying if percentiles are calculated on the original scale ("or") or the transformed scale ("tr") or the z-Score scale ("z")
 #' 
 #' @return				(data.frame) with columns for percentile, point estimate and confidence intervals. 
 #' 
 #' @author Christopher Rank \email{christopher.rank@@roche.com}, Tatjana Ammer \email{tatjana.ammer@@roche.com}
 
-getRI <- function(x, RIperc = c(0.025, 0.975), CIprop = 0.95, pointEst = c("fullDataEst", "medianBS", "meanBS"), Scale = c("original", "transformed")) {
+getRI <- function(x, RIperc = c(0.025, 0.975), CIprop = 0.95, pointEst = c("fullDataEst", "medianBS"), Scale = c("original", "transformed", "zScore")) {
 	
 	stopifnot(class(x) == "RWDRI")
-	stopifnot(is.numeric(RIperc))
-	stopifnot(is.numeric(CIprop))
-	pointEst <- match.arg(pointEst[1], choices = c("fullDataEst", "medianBS", "meanBS"))
-	Scale    <- match.arg(Scale[1], choices = c("original", "transformed"))
+	stopifnot(is.numeric(RIperc) & min(RIperc)>=0 & max(RIperc)<=1)
+	stopifnot(is.numeric(CIprop) & length(CIprop)==1 & CIprop>=0 & CIprop<=1)
+	pointEst <- match.arg(pointEst[1], choices = c("fullDataEst", "medianBS"))
+	Scale    <- match.arg(Scale[1], choices = c("original", "transformed", "zScore"))
 	
 	RIperc	 <- sort(RIperc)
 	RIResult <- data.frame(Percentile = RIperc, PointEst = NA, CILow = NA, CIHigh = NA)
 	
 	if (!is.na(x$Mu) & !is.na(x$Sigma) & !is.na(x$Lambda) & !is.na(x$Shift)) {
 			
-		RI <- qnorm(p = RIperc, mean = x$Mu, sd = x$Sigma)
-	
+		BSPerformed  <- (length(x$MuBS)>0 & length(x$SigmaBS)>0 & length(x$LambdaBS)>0 & length(x$ShiftBS)>0)
+		
+		# extract model parameters
+		lambda <- ifelse(pointEst=="medianBS" & BSPerformed, x$LambdaMed, x$Lambda)
+		mu 	   <- ifelse(pointEst=="medianBS" & BSPerformed, x$MuMed, 	  x$Mu)
+		sigma  <- ifelse(pointEst=="medianBS" & BSPerformed, x$SigmaMed,  x$Sigma)
+		shift  <- ifelse(pointEst=="medianBS" & BSPerformed, x$ShiftMed,  x$Shift)
+		
+		# formula for truncated normal distribution
+		RI <- pnorm(-1/lambda, mean=mu, sd=sigma) + RIperc*(1 - pnorm(-1/lambda, mean=mu, sd=sigma))
+		RI <- qnorm(RI, mean=mu, sd=sigma)
+			
 		if (Scale == "original") {
-			RI <- invBoxCox(RI, lambda = x$Lambda)
-			RI <- RI + x$Shift
+			RI <- invBoxCox(RI, lambda = lambda)
+			RI <- RI + shift
 						
 			RI[RI<0] <- 0		
 			RI[is.na(RI)] <- 0 
+			
+		} else if(Scale == "zScore")
+		{
+			RI <- qnorm(RIperc, mean=0, sd=1)
 		}
 		
 		RIResult$PointEst <- RI
 	
 		# reference intervals for Bootstrap samples
-		if (Scale == "original" & length(x$MuBS) > 0 & length(x$SigmaBS) > 0 & length(x$LambdaBS) > 0 & length(x$ShiftBS) > 0 & length(x$CostBS) > 0) {
+		if (BSPerformed) {
 			
 			for (i in 1:length(RIperc)) {
-				
-				RIBS <- qnorm(p = RIperc[i], mean = x$MuBS, sd = x$SigmaBS)
+											
+				# formula for truncated normal distribution
+				RIBS <- pnorm(-1/x$LambdaBS, mean=x$MuBS, sd=x$SigmaBS) + RIperc[i]*(1 - pnorm(-1/x$LambdaBS, mean=x$MuBS, sd=x$SigmaBS))
+				RIBS <- qnorm(RIBS, mean=x$MuBS, sd=x$SigmaBS)					
 								
-				for (l in 1:length(RIBS)) {
-					if (!is.na(x$MuBS[l]) & !is.na(x$SigmaBS[l]) & !is.na(x$LambdaBS[l]) & !is.na(x$ShiftBS[l])) {
-						RIBS[l]	<- max(0, invBoxCox(RIBS[l], x$LambdaBS[l]) + x$ShiftBS[l], na.rm = TRUE)
-						
-					} else {
-						RIBS[l] <-NA
-					}
+				for (l in 1:length(RIBS)) 
+				{					
+					RIBS[l]	<- max(0, invBoxCox(RIBS[l], x$LambdaBS[l]) + x$ShiftBS[l], na.rm = TRUE)					
 				}				
 				
-				RIResult$CILow[i]  <- as.numeric(quantile(x = RIBS, probs = (1-CIprop)/2, na.rm = TRUE))
-				RIResult$CIHigh[i] <- as.numeric(quantile(x = RIBS, probs = 1-(1-CIprop)/2, na.rm = TRUE))
+				if (Scale == "transformed" | Scale == "zScore" ) {					
+			
+					RIBS <- suppressWarnings(BoxCox(RIBS-shift, lambda = lambda))				
+					
+					if(Scale == "zScore")
+						RIBS <- (RIBS - mu) / sigma					
+				} 
 				
-				if(pointEst == "medianBS") {
-					RIResult$PointEst[i] <- median(RIBS, na.rm = TRUE)					
-				} 		
-				if(pointEst == "meanBS") {
-					RIResult$PointEst[i] <- mean(RIBS, na.rm = TRUE)					
-				}
+				RIResult$CILow[i]  <- as.numeric(quantile(x = RIBS, probs = (1-CIprop)/2, na.rm = TRUE))
+				RIResult$CIHigh[i] <- as.numeric(quantile(x = RIBS, probs = 1-(1-CIprop)/2, na.rm = TRUE))				
 			}
 		}
 	}
@@ -224,8 +236,7 @@ getRI <- function(x, RIperc = c(0.025, 0.975), CIprop = 0.95, pointEst = c("full
 #' @param RIperc		(numeric) value specifying the percentiles, which define the reference interval
 #' @param CIprop		(numeric) value specifying the central region for estimation of confidence intervals
 #' @param pointEst		(character) specifying the point estimate determination: (1) using the full dataset ("fullDataEst"),
-#' 						(2) calculating the median from all bootstrap samples ("medianBS"), (2) works only if NBootstrap > 0
-#' 						(3) calculating the mean from all bootstrap samples ("meanBS"), (3) works only if NBootstrap > 0
+#' 						(2) calculating the median model from all bootstrap samples ("medianBS"), (2) works only if NBootstrap > 0
 #' @param ...			additional arguments passed forward to other functions.
 #' 
 #' @return				No return value. Instead, a summary is printed.
@@ -234,13 +245,13 @@ getRI <- function(x, RIperc = c(0.025, 0.975), CIprop = 0.95, pointEst = c("full
 #' 
 #' @method print RWDRI
 
-print.RWDRI <- function(x, RIperc = c(0.025, 0.975), CIprop = 0.95, pointEst = c("fullDataEst", "medianBS", "meanBS"), ...) {
+print.RWDRI <- function(x, RIperc = c(0.025, 0.975), CIprop = 0.95, pointEst = c("fullDataEst", "medianBS"), ...) {
 	
 	stopifnot(class(x) == "RWDRI")
-	stopifnot(is.numeric(RIperc))
-	stopifnot(is.numeric(CIprop))
+	stopifnot(is.numeric(RIperc) & min(RIperc)>=0 & max(RIperc)<=1)
+	stopifnot(is.numeric(CIprop) & length(CIprop)==1 & CIprop>=0 & CIprop<=1)
 	
-	pointEst <- match.arg(pointEst[1], choices = c("fullDataEst", "medianBS", "meanBS"))
+	pointEst <- match.arg(pointEst[1], choices = c("fullDataEst", "medianBS"))
 	
 	# calculate reference intervals
 	RI <- getRI(x = x, RIperc = RIperc, CIprop = CIprop, pointEst = pointEst)
@@ -268,8 +279,11 @@ print.RWDRI <- function(x, RIperc = c(0.025, 0.975), CIprop = 0.95, pointEst = c
 	
 	cat(paste0("     method: ", x$Method, " (v", x$PkgVersion, ")\n"))
 	cat(paste0("      model: ", x$Model, "\n"))
-	cat(paste0("     N data: ", length(x$Data), " (data points)\n"))
-
+	cat(paste0("     N data: ", length(x$Data), "\n"))
+	
+	if(x$NBootstrap > 0)
+		cat(paste0("N bootstrap: ", x$NBootstrap, "\n"))
+	
 	if(!is.na(x$roundingBase))
 		cat(paste0("    rounded: yes (base: ", x$roundingBase, ")\n"))
 	else
@@ -281,11 +295,13 @@ print.RWDRI <- function(x, RIperc = c(0.025, 0.975), CIprop = 0.95, pointEst = c
 	if (!is.null(x$Group))
 		cat(paste0("     Gender: ", paste(x$Group, collapse=", "), "\n"))		
 	
-	cat(paste0("     lambda: ", signif(x$Lambda, 3), "\n"))
-	cat(paste0("         mu: ", signif(x$Mu, 3), "\n"))
-	cat(paste0("      sigma: ", signif(x$Sigma, 3), "\n"))
-	cat(paste0("      shift: ", signif(x$Shift, 3), "\n"))
-	cat(paste0("       cost: ", signif(x$Cost, 3), "\n"))
-	cat(paste0("NP fraction: ", signif(x$P, 3), "\n"))	
+	BSPerformed  <- (length(x$MuBS)>0 & length(x$SigmaBS)>0 & length(x$LambdaBS)>0 & length(x$ShiftBS)>0)
+	
+	cat(paste0("  point est: ", ifelse(pointEst=="medianBS" & BSPerformed, "medianBS", "fullDataEst"), "\n"))	
+	cat(paste0("     lambda: ", ifelse(pointEst=="medianBS" & BSPerformed, signif(x$LambdaMed, 3), signif(x$Lambda, 3)), "\n"))
+	cat(paste0("         mu: ", ifelse(pointEst=="medianBS" & BSPerformed, signif(x$MuMed, 3), 	   signif(x$Mu, 3)), 	 "\n"))
+	cat(paste0("      sigma: ", ifelse(pointEst=="medianBS" & BSPerformed, signif(x$SigmaMed, 3),  signif(x$Sigma, 3)),  "\n"))
+	cat(paste0("      shift: ", ifelse(pointEst=="medianBS" & BSPerformed, signif(x$ShiftMed, 3),  signif(x$Shift, 3)),  "\n"))
+	cat(paste0("       cost: ", ifelse(pointEst=="medianBS" & BSPerformed, signif(x$CostMed, 3),   signif(x$Cost, 3)),   "\n"))
+	cat(paste0("NP fraction: ", ifelse(pointEst=="medianBS" & BSPerformed, signif(x$PMed, 3), 	   signif(x$P, 3)), 	 "\n"))	
 }
-
