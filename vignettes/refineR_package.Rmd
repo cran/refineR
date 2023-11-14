@@ -25,7 +25,7 @@ options(width=200)
 ## Introduction
 
 The R-package **refineR** implements the recently published, state-of-the-art
-indirect method, refineR (Ammer et al., 2021, description of refineR v1.0) which
+indirect method, refineR (Ammer et al. 2021, description of refineR v1.0) which
 was developed for the estimation of reference intervals using Real-World Data
 (RWD) [https://doi.org/10.1038/s41598-021-95301-2]. It takes routine
 measurements of diagnostic tests, containing pathological and non-pathological
@@ -33,7 +33,9 @@ samples as input and uses sophisticated statistical methods to derive a model
 describing the distribution of the non-pathological samples. This distribution
 can then be used to derive reference intervals. The R-package offers various
 convenience functions to estimate the model, compute reference intervals, as
-well as to print and plot the estimated results.
+well as to print and plot the estimated results. Additional guidance on the
+usage of the **refineR** algorithm is given in Ammer et al. 2023
+[https://doi.org/10.1093/jalm/jfac101].
 
 
 ## Input Data
@@ -56,6 +58,24 @@ package, *testcase 4* is used as an example dataset:
 # load refineR package and load data
 library(refineR)
 head(testcase4)
+```
+
+For evaluating your own dataset, you may import the data from a
+*.CSV* file:
+
+```{r load_mydata, echo=TRUE}
+
+# open help of read.csv function to get familiar with its parameters
+#?read.csv
+
+# set the file path and parameters according to your input file and import dataset
+#mydata <- read.csv(file = "file path to mydata.csv", header = TRUE, sep = ",", dec = ".")
+#head(mydata)
+
+# extract the column containing the numeric test results
+#mydata2 <- mydata[, "column with test results"]
+# example how to run refineR estimation
+#fit <- findRI(Data = mydata2)
 ```
 
 ## Model Estimation and Presentation of Results
@@ -236,7 +256,7 @@ and the title:
 
 ```{r plot_param, echo=TRUE}
 # plot estimated model with bootstrapping with adjusted function arguments
-plot(fit.bs, RIperc = c(0.025, 0.5, 0.975), pointEst = "medianBS", xlim = c(0,100), xlab = "Concentration [U/L]", 
+plot(fit.bs, RIperc = c(0.025, 0.5, 0.975), pointEst = "medianBS", xlim = c(0, 100), xlab = "Concentration [U/L]", 
 		title = "Testcase 4")
 ```
 
@@ -262,5 +282,11 @@ plot(fit.bs, showPathol = TRUE, showValue = FALSE, pointEst = "medianBS",
 ## References 
 Ammer, T., Schuetzenmeister, A., Prokosch, HU., Rauh, M., Rank, C.M., Zierk, J.
 refineR: A Novel Algorithm for Reference Interval Estimation from Real-World
-Data. Sci Rep 11, 16023 (2021). https://doi.org/10.1038/s41598-021-95301-2
+Data. Scientific Reports 11, 16023 (2021).
+https://doi.org/10.1038/s41598-021-95301-2.
+
+Ammer, T., Schuetzenmeister, A., Rank, C.M., Doyle, K. Estimation of Reference
+Intervals from Routine Data Using the refineR Algorithm — A Practical Guide. The
+Journal of Applied Laboratory Medicine, 8(1):84-91 (2023).
+https://doi.org/10.1093/jalm/jfac101.
 

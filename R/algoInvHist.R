@@ -48,14 +48,14 @@ generateHistData <- function(x, ab, roundingBase) {
 	# define vector of breaks and perform histogramming
 	histBreaks <- seq(ab[1], ab[2], length.out = NBinsTotal+overlapFactor)	
 	fullHist   <- hist(x[x > histBreaks[1] & x <= histBreaks[NBinsTotal+overlapFactor]], breaks = histBreaks, plot = FALSE)
-		
+	
 	# combine bins...
 	for (i in 1:NBinsTotal) {
 		HistData$counts <- c(HistData$counts, sum(fullHist$counts[i:(i+overlapFactor-1)]))			
 		HistData$breakL <- c(HistData$breakL, fullHist$breaks[i])
 		HistData$breakR <- c(HistData$breakR, fullHist$breaks[i+overlapFactor])	
 	}	
-		
+	
 	# add bin for lower border
 	if(min(x) <= ab[1])
 	{
@@ -74,7 +74,7 @@ generateHistData <- function(x, ab, roundingBase) {
 		fullHist$counts <- c(0, fullHist$counts)
 		fullHist$breaks <- c(ab[1], fullHist$breaks)
 	}
-		
+	
 	# add bin for upper border
 	if(max(x) > ab[2])
 	{
@@ -97,7 +97,7 @@ generateHistData <- function(x, ab, roundingBase) {
 	
 	# calculate mids of histogram bins
 	HistData$mids   <- 0.5*(HistData$breakL + HistData$breakR)	
-		
+	
 	# sort bins in order of midpoints
 	sortIndex <- sort(HistData$mids, index.return = TRUE)$ix 
 	HistData$counts <- HistData$counts[sortIndex]
@@ -183,13 +183,10 @@ findRI <- function(Data = NULL, model = c("BoxCox", "modBoxCoxFast", "modBoxCox"
 	stopifnot(names(args) %in% c("NCores"))	# stop if args contains something else than NCores 
 	
 	model <- match.arg(model[1], choices = c("BoxCox", "modBoxCoxFast", "modBoxCox"))
-	
+
 	NCores <- args$NCores
-	stopifnot(is.null(NCores) | is.numeric(NCores))
+	stopifnot(is.null(NCores) | is.numeric(NCores))	
 	
-	if(length(Data) > 50000000)
-		cat(paste0("\n Warning: Extremely large dataset (> 50'000'000), might lead to performance and memory complications!\n\n"))
-		
 	obj	  	   <- list()		
 	obj$Data   <- Data	
 	# remove NAs
@@ -198,6 +195,12 @@ findRI <- function(Data = NULL, model = c("BoxCox", "modBoxCoxFast", "modBoxCox"
 	
 	# remove negative values 
 	obj$Data <- obj$Data[obj$Data >= 0] 
+	
+	if(length(obj$Data) > 50000000)
+		message(" Data has extremely large sample size (N > 50'000'000). This may lead to performance and memory issues.")
+	
+	if(length(obj$Data) < 1000)
+		message(" Data has small sample size (N < 1000). Evaluate results carefully.")	
 	
 	# add input information
 	obj$Method         <- "refineR"
@@ -661,11 +664,15 @@ calculateCostHist <- function(lambda, muVec, sigmaVec, HistData, alpha = 0.01, a
 			
 			selectionPeak20R <- (countsPred <= 0.20*maxCountsPred & (1:length(countsPred))>maxIndexPred)
 			selectionPeak20R[length(selectionPeak20R)] <- TRUE
-	
+			
 			# lower 0.5% should not be negative, thus check if lowerBound is NA
 			RRLowerBound <- invBoxCox(mu-qNormFactor*sigma, lambda = lambda)		
 			
-			if (!is.na(sum(selectionCounts)) & sum(selectionCounts) > (HistData$NBins*HistData$overlapFactor)/16 &  !is.na(RRLowerBound)) {					
+			if (!is.na(sum(selectionCounts)) & sum(selectionCounts) > (HistData$NBins*HistData$overlapFactor)/16 &  !is.na(RRLowerBound)) {		
+				
+				# perform pre-calculations for ratio count
+				ratioCounts20PreL <- sum(countsData[selectionPeak20L])/sum(countsPred[selectionPeak20L])
+				ratioCounts20PreR <- sum(countsData[selectionPeak20R])/sum(countsPred[selectionPeak20R])
 				
 				# get sum of data points in specified region next to the peak for the actual data and the prediction
 				peakArea  <- getSumForPArea(pLimitMin = pLimitMin, pLimitMax = pLimitMax, countsPred = countsPred, HistData = HistData, lambda = lambda, mu = mu, sigma = sigma, pCorr = pCorr)								
@@ -673,16 +680,16 @@ calculateCostHist <- function(lambda, muVec, sigmaVec, HistData, alpha = 0.01, a
 				sumPredPeak <- peakArea$sumPredPeak	
 				
 				ratio <- sumDataPeak/sumPredPeak				
-				#increase ratio until all exceed data points 
-				while (all(ratio <= 1.0) & any(ratio*sumPredPeak-qNormFactor*sqrt(ratio*sumPredPeak) <= sumDataPeak)) {
+				#increase ratio until the majority exceed the observed data points 
+				while (all(ratio <= 1.0) & sum(ratio*sumPredPeak-qNormFactor*sqrt(ratio*sumPredPeak) <= sumDataPeak)>5) {
 					rInd <- ratio*sumPredPeak-qNormFactor*sqrt(ratio*sumPredPeak) <= sumDataPeak
 					ratio[rInd] <- ratio[rInd] + 0.001
 				}	
 				PMax <- min(max(0.401, min(ratio)), 1.000)
 				
 				ratio <- sumDataPeak/sumPredPeak
-				#decrease ratio until all fall below the observed data point
-				while(all(ratio >= 0.4) & any(ratio*sumPredPeak+qNormFactor*sqrt(ratio*sumPredPeak) >= sumDataPeak)){ 
+				#decrease ratio until all but one fall below the observed data points
+				while(all(ratio >= 0.4) & sum(ratio*sumPredPeak+qNormFactor*sqrt(ratio*sumPredPeak) >= sumDataPeak)>1) { 
 					rInd <- ratio*sumPredPeak+qNormFactor*sqrt(ratio*sumPredPeak) >= sumDataPeak
 					ratio[rInd] <- ratio[rInd] - 0.001
 				}		
@@ -696,7 +703,10 @@ calculateCostHist <- function(lambda, muVec, sigmaVec, HistData, alpha = 0.01, a
 				# test different values for P and calculate costs...
 				while (continuePLoop) {					
 					
-					P <- PVec[PIndex]				
+					P <- PVec[PIndex]
+					
+					ratioCounts20L <- max(0.01, min(1, ratioCounts20PreL/P, na.rm=TRUE))^2
+					ratioCounts20R <- max(0.01, min(1, ratioCounts20PreR/P, na.rm=TRUE))^2	
 					
 					# factors applied for relaxation of cost function
 					rfVec <- c(5, 3, 1)/1000	
@@ -727,12 +737,10 @@ calculateCostHist <- function(lambda, muVec, sigmaVec, HistData, alpha = 0.01, a
 						if (sumSelectionEval > (HistData$NBins*HistData$overlapFactor)/32 & (sumSelectionPeakEval>=(0.2*(sum(selectionPeak95))) | sum(selectionPeak95)==1)) 
 						{							
 							ratioCounts80  <- max(0.01, min(1, sum(countsData[selectionEval & selectionPeak80])/sum(countsData[!selectionEval & selectionPeak80]), na.rm=TRUE))^2							
-							ratioCounts20L <- max(0.01, min(1, sum(rf*countsData[selectionPeak20L])/sum(countsPredP[selectionPeak20L]), na.rm=TRUE))^2
-							ratioCounts20R <- max(0.01, min(1, sum(rf*countsData[selectionPeak20R])/sum(countsPredP[selectionPeak20R]), na.rm=TRUE))^2
-							
+													
 							# extract data of selection
-							cData 	 <- rf*countsData[selectionEval]								
-							cPred 	 <- countsPredP[selectionEval]						
+							cData <- rf*countsData[selectionEval]								
+							cPred <- countsPredP[selectionEval]						
 							
 							costPreSum <- sum(log(sqrt(P*rf/(2*pi))*sqrtCountsPred[selectionEval]))					
 							
@@ -741,7 +749,7 @@ calculateCostHist <- function(lambda, muVec, sigmaVec, HistData, alpha = 0.01, a
 							# identical to the approximation with dnorm(), but faster
 							cost <- -(costPreSum + sumSelectionEval*(log(ratioCounts80)+log(ratioCounts20L)+log(ratioCounts20R)) + sum(-0.5*(cData-cPred)^2/cPred))/sqrt(sumSelectionEval)
 							
-#							### derivation of faster cost function calculation 
+							### derivation of faster cost function calculation 
 							
 							# original costs with poisson distribution based on statistical assumption of histogram data, with additional regularization
 							# pois 	    <- dpois(x = round(cData*rf), lambda = cPred*rf)*cPred*rf*ratioCounts80*ratioCounts20L*ratioCounts20R
@@ -752,7 +760,7 @@ calculateCostHist <- function(lambda, muVec, sigmaVec, HistData, alpha = 0.01, a
 							# rearrange equation
 							# cost <- -sum(log(dnorm(x=cData, mean=cPred, sd=sqrt(cPred))*cPred*ratioCounts80*ratioCounts20L*ratioCounts20R)/sqrt(sumSelectionEval))
 							# cost <- -(  sumSelectionEval*(log(ratioCounts80)+ratioCounts20L+ratioCounts20R) + sum(log(sqrt((P*rf)/(2*pi))*sqrtCountsPred[selectionEval])) +sum((-0.5*(cData - cPred)^2)/cPred ))/sqrt(sumSelectionEval)
-							# cost <- -(  sumSelectionEval*(log(ratioCounts80)+ratioCounts20L+ratioCounts20R) + costPreSum) +sum((-0.5*(cData - cPred)^2)/cPred ))/sqrt(sumSelectionEval)				
+							# cost <- -(  sumSelectionEval*(log(ratioCounts80)+ratioCounts20L+ratioCounts20R) + costPreSum) +sum((-0.5*(cData - cPred)^2)/cPred ))/sqrt(sumSelectionEval)			
 							
 							# update best cost
 							if (!is.na(cost) & cost < bestParam[5]) {						
@@ -1279,7 +1287,7 @@ estimateAB <- function(x) {
 		y <- pmin(pmax(y, 0), 1)
 		
 		propLowDens <- sum(y)/length(y)
-		
+
 		if((iter==1 | propLowDens>0.85) & propLowDens<0.86)	{
 			continueABLoop <- FALSE
 			abHist 		   <- abOpt						
@@ -1293,7 +1301,7 @@ estimateAB <- function(x) {
 		}
 		
 		stepSize <- stepSize/2
-		iter 	 <- iter + 1	
+		iter 	 <- iter + 1		
 	}
 	
 	abOpt <- abSearchReg <- abHist

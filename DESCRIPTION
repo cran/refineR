@@ -1,7 +1,7 @@
 Type: Package
 Package: refineR
-Version: 1.6.0
-Date: 2023-03-06
+Version: 1.6.1
+Date: 2023-11-13
 Title: Reference Interval Estimation using Real-World Data
 Author: Tatjana Ammer [aut, cre],
   Christopher M Rank [aut],
@@ -15,16 +15,21 @@ Depends: R (>= 3.2.0)
 Imports: stats, ash, future, future.apply, parallel, graphics,
         grDevices
 Suggests: knitr, rmarkdown
-Description: Indirect method for the estimation of reference intervals using Real-World Data ('RWD'). It takes routine measurements 
-	of diagnostic tests, containing pathological and non-pathological samples as input and uses sophisticated
-	statistical methods to derive a model describing the distribution of the non-pathological samples. This distribution can then be 
-	used to derive reference intervals. 
-	Furthermore, the package offers functions for printing and plotting the results of the algorithm. See ?refineR for a more comprehensive description of the features. 
-	Version 1.0 of the algorithm is described in detail in Ammer T., Schuetzenmeister A., Prokosch H.-U., Rauh M., Rank C.M., Zierk J. "refineR: A Novel Algorithm for Reference Interval Estimation from Real-World Data". Scientific Reports (2021) <doi:10.1038/s41598-021-95301-2>.
+Description: Indirect method for the estimation of reference intervals using 
+	Real-World Data ('RWD'). It takes routine measurements of diagnostic 
+	tests, containing pathological and non-pathological samples as input 
+	and uses sophisticated statistical methods to derive a model describing 
+	the distribution of the non-pathological samples. This distribution can 
+	then be used to derive reference intervals. Furthermore, the package 
+	offers functions for printing and plotting the results of the algorithm. 
+	See ?refineR for a more comprehensive description of the features. 
+	Version 1.0 of the algorithm is described in detail in 'Ammer et al. (2021)' 
+	<doi:10.1038/s41598-021-95301-2>. Additional guidance on the usage of 
+	the algorithm is given in 'Ammer et al. (2023)' <doi:10.1093/jalm/jfac101>.
 License: GPL (>= 3)
 VignetteBuilder: knitr, rmarkdown
 NeedsCompilation: no
 LazyData: true
-Packaged: 2023-03-06 15:28:39 UTC; ammert
+Packaged: 2023-11-13 15:11:04 UTC; rankc
 Repository: CRAN
-Date/Publication: 2023-03-08 10:40:02 UTC
+Date/Publication: 2023-11-14 12:40:02 UTC

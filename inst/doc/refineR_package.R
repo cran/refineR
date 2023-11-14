@@ -9,6 +9,20 @@ options(width=200)
 library(refineR)
 head(testcase4)
 
+## ----load_mydata, echo=TRUE---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# open help of read.csv function to get familiar with its parameters
+#?read.csv
+
+# set the file path and parameters according to your input file and import dataset
+#mydata <- read.csv(file = "file path to mydata.csv", header = TRUE, sep = ",", dec = ".")
+#head(mydata)
+
+# extract the column containing the numeric test results
+#mydata2 <- mydata[, "column with test results"]
+# example how to run refineR estimation
+#fit <- findRI(Data = mydata2)
+
 ## ----run_refineR_default, echo=TRUE-------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # run refineR estimation and print resulting RWDRI object
 fit <- findRI(Data = testcase4)
@@ -48,7 +62,7 @@ print(fit.bs, RIperc = c(0.025, 0.975), pointEst = "medianBS")
 
 ## ----plot_param, echo=TRUE----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # plot estimated model with bootstrapping with adjusted function arguments
-plot(fit.bs, RIperc = c(0.025, 0.5, 0.975), pointEst = "medianBS", xlim = c(0,100), xlab = "Concentration [U/L]", 
+plot(fit.bs, RIperc = c(0.025, 0.5, 0.975), pointEst = "medianBS", xlim = c(0, 100), xlab = "Concentration [U/L]", 
 		title = "Testcase 4")
 
 ## ----plot_showPathol, echo=TRUE-----------------------------------------------------------------------------------------------------------------------------------------------------------------------

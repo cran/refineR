@@ -1,3 +1,14 @@
+# refineR version 1.6.1
+
+The new version includes the following updates and improvements: 
+
+* Revised vignette and literature information
+
+* Slight modification of search region for the fraction of non-pathological samples
+ 
+* RIbench benchmark score: 0.307, Failure rate: 0.0, Implausible Results: 0.122%  
+
+
 # refineR version 1.6.0
 
 The new version includes the following updates and improvements: 

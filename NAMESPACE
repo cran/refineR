@@ -26,11 +26,8 @@ importFrom("utils", packageVersion)
 importFrom("utils", "capture.output")
 
 
-### exported classes
-
-exportClasses(
-	"RWDRI"
-)
 
 S3method(print, RWDRI)
+export(print.RWDRI)
 S3method(plot, RWDRI)
+export(plot.RWDRI)
