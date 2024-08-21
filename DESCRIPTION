@@ -1,7 +1,7 @@
 Type: Package
 Package: refineR
-Version: 1.6.1
-Date: 2023-11-13
+Version: 1.6.2
+Date: 2024-08-14
 Title: Reference Interval Estimation using Real-World Data
 Author: Tatjana Ammer [aut, cre],
   Christopher M Rank [aut],
@@ -30,6 +30,6 @@ License: GPL (>= 3)
 VignetteBuilder: knitr, rmarkdown
 NeedsCompilation: no
 LazyData: true
-Packaged: 2023-11-13 15:11:04 UTC; rankc
+Packaged: 2024-08-14 10:05:25 UTC; rankc
 Repository: CRAN
-Date/Publication: 2023-11-14 12:40:02 UTC
+Date/Publication: 2024-08-21 21:40:02 UTC

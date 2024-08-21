@@ -1,3 +1,16 @@
+# refineR version 1.6.2
+
+The new version includes the following updates and improvements: 
+
+* Restriction of the search region of lambda to the range 0.0 to 1.0 (before it was 0.0 to 1.5)
+
+* Slight modification of model estimation for small sample sizes (N < 1000)
+
+* Performance improvements, especially for data sets with small sample sizes (N < 1000)
+
+* RIbench benchmark score: 0.300, Failure rate: 0.0, Implausible Results: 0.069% 
+
+
 # refineR version 1.6.1
 
 The new version includes the following updates and improvements: 

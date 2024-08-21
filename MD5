@@ -1,7 +1,7 @@
-078276accbc0ad73b2db61817970701d *DESCRIPTION
+ff40e0bc9d3cb2dbe56c1900f28af5c4 *DESCRIPTION
 54deeba4da6bacc6055c51d61b6e500d *NAMESPACE
-1938780514ebffbfb5bfeaadfff48ee1 *NEWS.md
-005572324b1f93f258fce26984d2472d *R/algoInvHist.R
+7108e18678955f23db1912b50e489753 *NEWS.md
+3e6c6bdbb3bf89d990bcbf049eadb4e7 *R/algoInvHist.R
 eaf5914a077a5a7e2bc3ac82a53ec7db *R/data.R
 920d45803cc021016e1522c3d444e80c *R/plot.R
 817e161ce81b4fea591029d9249109fc *R/utils.R
@@ -13,7 +13,7 @@ c94ea28a62ccc7e96bfacdbf4247481d *data/testcase3.rda
 c737b510a233b4ee371c1500c6f4f2f3 *data/testcase5.rda
 cc4897a3601c98e53555918a707834a5 *inst/doc/refineR_package.R
 34739dd57e8503292bc9de9deba6e4ee *inst/doc/refineR_package.Rmd
-91f03d2b1f08f40795dd14fdf60d1972 *inst/doc/refineR_package.html
+03eeab3f540e2706bcc47fd660a485b2 *inst/doc/refineR_package.html
 d23b70b2526de692cd1c0e3e98386881 *man/BoxCox.Rd
 2a32a85903b0c16b29853a848c07f2d9 *man/addGrid.Rd
 2feb83a3363781dbdcec9739bf892fac *man/as.rgb.Rd
@@ -33,7 +33,7 @@ cd86d68bc932eccec7f95129cd2f1b1b *man/invBoxCox.Rd
 63590e84c83f8f5bb5131c52f481212c *man/plot.RWDRI.Rd
 47a3aab1b925d57faed3c184e533f95c *man/pnormApprox.Rd
 621e73dc236421d5245da7964cff75ef *man/print.RWDRI.Rd
-80683f65f9340e85b3c1064a609b40ac *man/refineR-Package.Rd
+007597d7ee5014ceb6f10e93d9a79ee2 *man/refineR-Package.Rd
 b505544a7159b8f37d9b75d1980873e7 *man/testParam.Rd
 b4bdff63409d042a4bef3c991a66676f *man/testcase1.Rd
 39929fb387f1a827017285a8fe71a058 *man/testcase2.Rd

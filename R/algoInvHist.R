@@ -175,8 +175,7 @@ findRI <- function(Data = NULL, model = c("BoxCox", "modBoxCoxFast", "modBoxCox"
 	
 	# check of input parameters 
 	stopifnot(!is.null(Data))
-	stopifnot(is.numeric(Data))
-	stopifnot(length(Data) > 10) 
+	stopifnot(is.numeric(Data))	
 	stopifnot(is.numeric(NBootstrap) & NBootstrap %%1 == 0 & NBootstrap >= 0)
 	stopifnot(is.numeric(seed) & seed%%1 ==0)
 	stopifnot(is.character(model))
@@ -195,6 +194,8 @@ findRI <- function(Data = NULL, model = c("BoxCox", "modBoxCoxFast", "modBoxCox"
 	
 	# remove negative values 
 	obj$Data <- obj$Data[obj$Data >= 0] 
+	
+	stopifnot(length(obj$Data) > 10) 
 	
 	if(length(obj$Data) > 50000000)
 		message(" Data has extremely large sample size (N > 50'000'000). This may lead to performance and memory issues.")
@@ -230,11 +231,12 @@ findRI <- function(Data = NULL, model = c("BoxCox", "modBoxCoxFast", "modBoxCox"
 	
 	#use a pre-generated sequence of seeds 
 	res <- future_lapply(iterations, FUN=function(i) {	
-				
-			if(i==1)
-				Data <- obj$Data
+			
+			# in case of a sample size < 250, repeat dataset that it contains at least 250 data points
+			if(i==1)				
+				Data <- rep(obj$Data, times=ceiling(250/length(obj$Data)))
 			else 
-				Data <- sample(x = obj$Data, size = length(obj$Data), replace = TRUE)			
+				Data <- sample(x = obj$Data, size = ceiling(250/length(obj$Data))*length(obj$Data), replace = TRUE)			
 					
 			bestParamShifted <- c(NA, NA, NA, NA, 1e9, NA)
 						
@@ -257,7 +259,7 @@ findRI <- function(Data = NULL, model = c("BoxCox", "modBoxCoxFast", "modBoxCox"
 					roundingBase <- findRoundingBase(x = DataShifted)
 					   				   
 					# initial estimation of lambda...
-					lambdaVec <- (1/12*(0:15))^1.8170595
+					lambdaVec <- (1/12*(0:12))^1.8170595
 									
 					#define search regions for mu, sigma, and get estimation of ab for all lambdas determining the area around the main peak
 					startVals <- defineSearchRegions(x = DataShifted, lambdaVec = lambdaVec, roundingBase = roundingBase, abEst = NULL)
@@ -271,21 +273,21 @@ findRI <- function(Data = NULL, model = c("BoxCox", "modBoxCoxFast", "modBoxCox"
 					bestParam <- c(NA, NA, NA, NA, 1e9, NA)
 								   
 					bestParam <- testParam(lambdaVec = lambdaVec, bestParam = bestParam, Data = DataShifted, HistData = Hist, 
-										   startValues = startVals, NIter = 8, alpha = 0.01, alphaMcb = 0.1)
+										   startValues = startVals, NIter = 7, alpha = 0.01, alphaMcb = 0.1)
 										
 					# estimation with updated lambdaVec..	
 					# refine search region of lambda...		
 					minIndex  <- min(length(lambdaVec)-2, max(3, which.min(abs(bestParam[1]-lambdaVec))))
 						
-					lambdaVec <- c(seq(from = lambdaVec[minIndex-2], to = lambdaVec[minIndex-1], length.out = 6)[2:5],
-					   			   seq(from = lambdaVec[minIndex-1], to = lambdaVec[minIndex+0], length.out = 6)[2:5],
-								   seq(from = lambdaVec[minIndex+0], to = lambdaVec[minIndex+1], length.out = 6)[2:5],
-								   seq(from = lambdaVec[minIndex+1], to = lambdaVec[minIndex+2], length.out = 6)[2:5])			
+					lambdaVec <- c(seq(from = lambdaVec[minIndex-2], to = lambdaVec[minIndex-1], length.out = 5)[2:4],
+					   			   seq(from = lambdaVec[minIndex-1], to = lambdaVec[minIndex+0], length.out = 5)[2:4],
+								   seq(from = lambdaVec[minIndex+0], to = lambdaVec[minIndex+1], length.out = 5)[2:4],
+								   seq(from = lambdaVec[minIndex+1], to = lambdaVec[minIndex+2], length.out = 5)[2:4])			
 						
 					startValsRefined <- defineSearchRegions(x = DataShifted, lambdaVec = lambdaVec, roundingBase = roundingBase, abEst = startVals$abEst)
 								   
 					bestParam <- testParam(lambdaVec = lambdaVec, bestParam = bestParam, Data = DataShifted, HistData = Hist, 
-										   startValues = startValsRefined, NIter = 8, alpha = 0.01, alphaMcb = 0.1)
+										   startValues = startValsRefined, NIter = 7, alpha = 0.01, alphaMcb = 0.1)
 					 
 					
 					# check if costs have improved								
@@ -695,7 +697,7 @@ calculateCostHist <- function(lambda, muVec, sigmaVec, HistData, alpha = 0.01, a
 				}		
 				PMin <- min(max(0.400, min(ratio)), 0.999)
 				
-				PVec  <- c(seq(from=PMin, to=PMax, by=min(max(0.002, (PMax-PMin)/8), 0.005)), PMax)
+				PVec  <- c(seq(from=PMin, to=PMax, by=min(max(0.002, (PMax-PMin)/8), 0.01)), PMax)
 				
 				continuePLoop <- TRUE											
 				PIndex 		  <- 1
