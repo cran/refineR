@@ -1,0 +1,321 @@
+---
+title: 'VeRUS: Verification of Reference Intervals Based on the Uncertainty of Sampling'
+author: "Matthias Beck & Christopher M Rank"
+date: "`r Sys.Date()`"
+
+output: 
+  html_document:
+    theme: default
+    toc: true
+    toc_depth: 3
+
+vignette: >
+  %\VignetteIndexEntry{VeRUS: Verification of Reference Intervals Based on the Uncertainty of Sampling} 
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r global_options, echo=FALSE, eval=TRUE}
+knitr::opts_chunk$set(fig.width = 7, fig.height = 5, fig.align = "center", echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE)
+# increasing the width of the stdout-stream
+options(width = 200)
+```
+
+## Introduction
+
+So far, most methods for the verification of reference intervals require the 
+collection of reference samples that reasonably represent the local population. 
+This is often not feasible due to the high costs and the time-consuming process 
+of collecting these samples. The method **VeRUS** (Verification of Reference 
+Intervals Based on the Uncertainty of Sampling) is a novel approach to verify 
+reference intervals without the collection of samples. Instead, **VeRUS** 
+combines the already available data from the laboratory information system with 
+the uncertainty of sampling to verify the reference intervals. A detailed 
+description of the method can be found in 
+[https://doi.org/10.1515/cclm-2025-0728].
+
+## Description of VeRUS 
+At the core of VeRUS is the construction of uncertainty margins around the 
+limits of the reference intervals. The uncertainty margins are defined as the 
+approximated confidence interval of population quantiles at a given sample size. 
+As the uncertainty margins are independent of the sample size of the reference
+sample, they enable direct comparison of reference intervals derived from 
+different sample sizes. 
+These uncertainty margins can be shown when printing the result of *findRI*. 
+For demonstration purposes, *testcase 1* is used as an example for RWD: The 
+*print* and *plot* functions can now be used to display the uncertainty margins.
+
+```{r loading_example, echo=TRUE}
+library(refineR)
+fit <- findRI(Data = testcase1)
+print(fit, uncertaintyRegion = "uncertaintyMargin")
+```
+```{r plot_example, echo=TRUE}
+# The uncertainty margins are shown in the plot
+plot(fit, uncertaintyRegion = "uncertaintyMargin")
+```
+
+## Application of VeRUS
+
+The standard use case of **VeRUS** requires only the result of refineR's *findRI* 
+function and the candidate reference interval ,i.e., the one that is supposed to be verified. 
+Suppose laboratory A wants to verify the reference interval [9.1, 31.5] for a 
+certain biomarker. The verification can be done as follows:
+
+1. Ensuring comparable analytical methods and demographics: 
+    - Analytical methods: The analytical methods used in laboratory A should be comparable to those used to establish the reference interval.
+    - Demographics: The local population of laboratory A should be similar to the population from which the reference interval was derived.
+2. Careful filtering of the RWD according to Ammer et al. 2023 [https://doi.org/10.1093/jalm/jfac101].
+3. Application of the *findRI* function to model the reference distribution from the filtered RWD.
+4. Using the *verifyRI* function to verify the reference interval.
+
+
+The most relevant parameters of the *verifyRI* function are:
+
+- *RIdata*: (*RWDRI*) object (result of the *findRI* function) or a (*numeric*) vector specifying a reference interval.
+- *RIcand*: (*RWDRI*) object or a (*numeric*) vector specifying the reference interval that needs to be verified.
+- *RIperc*: (*numeric*) vector specifying the percentiles which define the reference interval (default: c(0.025, 0.975)).
+- *printResults*: (*logical*) indicating whether to print results to the console.
+- *generatePlot*: (*logical*) indicating whether to generate a verification plot.
+
+```{r verification_1, echo=TRUE} 
+# Suppose the currently used reference interval is [9.1, 31.5]
+verifyRI(RIdata = fit, RIcand = c(9.1, 31.5))
+```
+
+
+As can be seen, the reference interval [9.1, 31.5] is verified by the method 
+**VeRUS**. The first table that is printed shows the uncertainty margins around 
+the point estimates of each reference limit. The second table that is printed 
+shows the fraction of samples within the Data argument of `findRI` that are 
+outside (below or above) or within the respective reference interval. 
+
+
+The *verifyRI* function is flexible. If only the 99th percentile is relevant, 
+one could verify it as follows: 
+```{r one_sided, echo=TRUE}
+verifyRI(RIdata = fit, RIcand = 67, RIperc = 0.99)
+```
+
+
+However, if more than one reference limit of a numeric *RIcand* is available, 
+it is recommended to provide at least two of them as a vector (e.g., c(lower, upper))
+and their corresponding percentiles as *RIperc*. Providing only a single value 
+- if *RIdata* is an RWDRI object and *RICand* is a numeric vector - necessitates 
+an imputation step which may lead to unexpected results.
+
+
+### Possible Inputs of the *verifyRI* Function
+
+
+The *verifyRI* function can be used to compare:
+
+-	a RWDRI object (result of the *findRI* function) with a numeric reference interval 
+-	two numeric reference intervals 
+-	two RWDRI objects 
+
+If the parameters describing the reference distribution from which the candidate 
+RI is derived are known, a custom RWDRI object can be defined and provided to 
+the *verifyRI* function to improve the accuracy of the verification.
+
+```{r show_possible_inputs_of_verifyRI, fig.show='hold'}
+# compare RWDRI object with a numeric reference interval
+verifyRI(RIdata = fit, RIcand = c(9.1, 33.5),
+ title = "Comparison of RWDRI with Numeric RI",
+ printResults = FALSE)
+# compare two numeric RIs
+verifyRI(RIdata = c(4, 26), RIcand = c(1, 29),
+ title = "Comparison of two Numeric RIs",
+ printResults = FALSE)
+
+# compare two RWDRI objects
+# custom RWDRI object describing the reference distribution
+# Mu and Sigma define the mean and standard deviation of a normal distribution.
+# Then the inverse Box-Cox transformation is applied to the data with the power parameter Lambda.
+# The Shift parameter is used to shift the distribution to the desired location.
+custom_RWDRI <- list(Mu = 20, Sigma = 5, Lambda = 0.9, Shift = 0)
+class(custom_RWDRI) <- "RWDRI"
+verifyRI(RIdata = fit, RIcand = custom_RWDRI,
+ title = "Comparison of two RWDRI objects",
+ printResults = FALSE)
+```
+
+### Interpretation of the Results
+The verification of each reference limit may result in one of three outcomes:
+
+1.	The point estimate (PE) of each reference limit is within the corresponding 
+uncertainty margin of the other reference interval. Here the greatest level of 
+confidence in the verification is given. This is indicated by "Overlap with PE" 
+in the first table and by the green color of the overlapping uncertainty margin.
+2.	The uncertainty margins of the candidate RI and the local RI overlap but at 
+least one point estimate is outside the uncertainty margin of the other interval. 
+This is indicated by "Overlap of margins" in the first table and by the yellow 
+color of the overlapping uncertainty margin.
+3.	The uncertainty margins of the candidate RI and the local RI do not overlap. 
+This is indicated by "No overlap" in the first table and by the red color of the 
+non-overlapping uncertainty margin.
+
+## Quantification of the Similarity of Two Reference Intervals
+VeRUS can be used not only to verify reference intervals but also to determine the 
+similarity of two reference intervals. The function *getRISimilarity* can be used for this.
+
+```{r similarity, echo=TRUE}
+# Suppose the currently used reference interval is [9.1, 55]
+getRISimilarity(RIdata = fit, RIcand = c(9.1, 55))
+```
+
+
+RI similarity is quantified using uncertainty margins (UMs) around reference 
+limits (RLs). UMs, which approximate quantile confidence intervals, narrow with 
+larger sample sizes. The similarity level of two RIs is quantified by the 
+largest sample size, i.e. the smallest UMs, for which the UMs of all 
+corresponding RLs overlap. As sample sizes are not a particularly intuitive measure 
+of similarity, it is also expressed as an s-value. The s-value presents the 
+level of similarity analogous to the p-value: s ≤ 0.05 relates to overlapping 
+CIs of RIs established with the standard non-parametric method with N=120 and 
+therefore indicates the minimal sample size for which the RIs are considered 
+equivalent. Smaller s-values indicate a higher similarity of the RIs and 
+therefore higher certainty of the equivalence of the RIs. The s-value is 
+calculated as follows: *s = 6 / Nmin* where Nmin is the maximum sample size for 
+which the UMs of all corresponding RLs overlap.
+
+## Advanced Applications
+
+### Invisible Output of the *verifyRI* Function
+
+The *verifyRI* function returns an invisible object. It is a named list with 
+the following elements: 
+
+- *testPassedPointEst*	(*logical*) indicating whether all point estimates are within the corresponding uncertainty margins i.e. highest level of confidence in the verification
+- *testPassedMargins*   (*logical*) indicating whether all uncertainty margins overlap
+- *RIVerificationTab*   (*data.frame*) summarizing the verification results
+
+```{r output_verifyRI, echo=TRUE}
+# We deactivate the printing of the results and plotting
+verification_result <- verifyRI(RIdata = fit, RIcand = c(9.1, 33), printResults = FALSE, generatePlot = FALSE)
+verification_tab <- verification_result$RIVerificationTab
+# The verification table also contains the values of the power parameter (Lambda) of each estimated model.
+# The Lambda values of the models of the candidate distribution and the local distribution are the same when and RWDRI object is compared to a numeric candidate RI.
+print(paste0("All Lambdas are equal: ", identical(verification_tab$RICandLambda, verification_tab$RIdataLambda)))
+# For this example, the Lambda values are irrelevant, as they are the same.
+cols_of_interest <- colnames(verification_tab)
+cols_of_interest <- cols_of_interest[!cols_of_interest %in% c("RICandLambda", "RIdataLambda")]
+
+knitr::kable(verification_tab[, cols_of_interest])
+```
+
+
+### Non-Default Parameters to Define Uncertainty Margins
+
+By default, the uncertainty margins approximate the 90% confidence intervals 
+expected when estimating the population quantiles *RIperc* with a sample size 
+of 120 which is the minimum sample size recommended for the non-parametric 
+direct approach of establishing RIs. The width of the uncertainty margins can 
+be adjusted with the parameters:
+
+- *n*      (*integer*) indicating the sample size for which the sampling uncertainty shall be taken into account. Default is 120
+- *UMprop* (*numeric*) defining the desired confidence level for the uncertainty margins. Default is 0.9 (90% approximated confidence interval).
+
+```{r adjust_uncertainty_margins, fig.show='hold'}
+
+verifyRI(RIdata = custom_RWDRI, RIcand = c(9.1, 31.5), title = "n=120, UMprop=0.9")
+# increasing n may be desired to get a more strict verification
+verifyRI(RIdata = custom_RWDRI, RIcand = c(9.1, 31.5), n = 1000, UMprop = 0.95, title = "n=1000, UMprop=0.95")
+```
+
+By default, an asymmetry correction is applied to the uncertainty margins. This
+correction may be deactivated by setting the parameter *asymmetryCorr* to
+*FALSE*. This is only relevant for highly skewed distributions.
+
+The *n*, *UMprop*, and *asymmetryCorr* parameters can also be set in the
+*getRI*, *print*, and *plot* functions.
+```{r adjust_uncertainty_margins_2, echo=TRUE}
+plot(fit, uncertaintyRegion = "uncertaintyMargin", n = 1000, UMprop = 0.95, asymmetryCorr = TRUE)
+getRI(fit, n = 1000, UMprop = 0.95, asymmetryCorr = TRUE)
+print(fit, uncertaintyRegion = "uncertaintyMargin", n = 1000, UMprop = 0.95, asymmetryCorr = TRUE)
+```
+
+### Customization of the Plot
+
+The plot of *verifyRI* can be customized by setting the parameters:
+
+- *xlab*  (character) The label of the x-axis.
+- *title* (character) The title of the plot.
+- *Scale* (character) The scale of the x-axis. Possible values are "original", "splitXAxis", and "transformed". Default is "original".
+- *candLabel* (character) The label for the candidate reference interval.
+- *dataLabel* (character) The label for the local reference interval.
+
+```{r adjust_plot_1, echo=TRUE, fig.show='hold'}
+scaleOptions <- c("original", "splitXAxis", "transformed")
+labels <- c("default", "Laboratory", "Timepoint")
+for(i in 1:3) {
+
+if(i == 1){
+  candLabel <- dataLabel <- NULL
+}
+if(i == 2){
+  candLabel <- "Lab A"
+  dataLabel <- "Lab B"
+}
+if(i == 3){
+  candLabel <- "Timepoint A"
+  dataLabel <- "Timepoint B"
+}
+
+  verifyRI(
+    RIdata = fit, RIcand = c(9.1, 33), printResults = FALSE,
+    xlab = paste("x-axis scale:", scaleOptions[i]),
+    title = paste("Verification plot with", scaleOptions[i], "scale"),
+    Scale = scaleOptions[i],
+    candLabel = candLabel,
+    dataLabel = dataLabel
+  )
+}
+```
+
+
+### Advanced Parameters for *getRISimilarity*
+
+The *getRISimilarity* function can be customized with the following parameters:
+
+- *UMprop*        (numeric) The desired confidence level for the uncertainty margins.
+  Default is 0.9 (90% confidence interval).
+- *asymmetryCorr* (logical) If TRUE, an asymmetry correction is applied to the
+  uncertainty margins. Default is TRUE.
+- *Overlap*       (*character*) either "OverlapMargins" (uncertainty margins overlap) or "OverlapPointEst" (point estimates are within uncertainty margins). Default is "OverlapMargins"
+
+```{r similarity_2, echo=TRUE}
+# Suppose the currently used reference interval is [9.1, 55]
+getRISimilarity(RIdata = fit, RIcand = c(9.1, 55), UMprop = 0.95, asymmetryCorr = FALSE, Overlap = "OverlapPointEst")
+```
+
+
+### Alternative Verification Method
+
+Haeckel et al. proposed using **Equivalence Limits** [https://doi.org/10.1515/labmed-2016-0002] 
+to verify reference intervals. Equivalence Limits can be applied by setting the parameter *marginType* to *EL*.
+
+```{r equivalence_limits, echo=TRUE}
+verifyRI(
+  RIdata = fit, RIcand = c(9.1, 33), printResults = TRUE,
+  marginType = "EL",
+  title = "Verification with Equivalence Limits"
+)
+```
+
+
+## References
+Beck, M., Dufey, F., Ammer, T., Schützenmeister, A., Zierk, J., Rank, C. M., &
+Rauh, M. (2025). VeRUS: verification of reference intervals based on the
+uncertainty of sampling. Clinical Chemistry and Laboratory Medicine. 
+https://doi.org/10.1515/cclm-2025-0728.
+
+Ammer, T., Schuetzenmeister, A., Rank, C.M., Doyle, K. Estimation of Reference
+Intervals from Routine Data Using the refineR Algorithm — A Practical Guide. The
+Journal of Applied Laboratory Medicine, 8(1):84-91 (2023).
+https://doi.org/10.1093/jalm/jfac101.
+
+Haeckel, Rainer, Wosniok, Werner and Arzideh, Farhad. Equivalence limits of
+reference intervals for partitioning of population data. Relevant differences of
+reference limits. LaboratoriumsMedizin. 40(3):199-205 (2016).
+https://doi.org/10.1515/labmed-2016-0002.

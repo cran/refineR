@@ -9,7 +9,9 @@ getRI(
   RIperc = c(0.025, 0.975),
   CIprop = 0.95,
   pointEst = c("fullDataEst", "medianBS"),
-  Scale = c("original", "transformed", "zScore")
+  Scale = c("original", "transformed", "zScore"),
+  UMprop = 0.9,
+  ...
 )
 }
 \arguments{
@@ -23,13 +25,20 @@ getRI(
 (2) calculating the median model from all bootstrap samples ("medianBS"), (2) works only if NBootstrap > 0}
 
 \item{Scale}{(character) specifying if percentiles are calculated on the original scale ("or") or the transformed scale ("tr") or the z-Score scale ("z")}
+
+\item{UMprop}{(numeric) value specifying the central region for estimation of uncertainty margins}
+
+\item{...}{calcUCMargins argument (logical) disabling the calculation of uncertainty margins when set to FALSE,
+n argument (integer) specifying the theoretical sample size used for uncertainty margin calculation default (n = 120),
+asymmetryCorr argument (logical) disabling the asymmetry correction when set to FALSE}
 }
 \value{
-(data.frame) with columns for percentile, point estimate and confidence intervals.
+\if{html}{\out{<div class="sourceCode">}}\preformatted{		(data.frame) with columns for percentile, point estimate, bootstrap-based confidence intervals and uncertainty margins.
+}\if{html}{\out{</div>}}
 }
 \description{
 Method to calculate reference intervals (percentiles) for objects of class 'RWDRI'
 }
 \author{
-Christopher Rank \email{christopher.rank@roche.com}, Tatjana Ammer \email{tatjana.ammer@roche.com}
+Christopher Rank \email{christopher.rank@roche.com}, Tatjana Ammer \email{tatjana.ammer@roche.com}, Matthias Beck \email{matthias.beck.mb1@roche.com}
 }

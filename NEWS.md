@@ -1,3 +1,16 @@
+# refineR version 2.0.0
+
+The new version includes the following updates and improvements: 
+
+* Added functionality for verification of reference intervals
+
+* Uncertainty margins estimated for verification of reference intervals can be printed and plotted
+
+* Added green and blue color scheme to the plot function
+ 
+* RIbench benchmark score: 0.300, Failure rate: 0.0, Implausible Results: 0.069% 
+
+
 # refineR version 1.6.2
 
 The new version includes the following updates and improvements: 

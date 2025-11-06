@@ -11,7 +11,7 @@ as.rgb(col = "black", alpha = 1)
 those colors can be used which are part of the set returned by function colors(). Defaults
 to "black".}
 
-\item{alpha}{(numeric) value specifying the transparency to be used, 0 = completely transparent, 
+\item{alpha}{(numeric) value specifying the transparency to be used, 0 = completely transparent,
 1 = opaque.}
 }
 \value{
@@ -19,8 +19,8 @@ RGB-code
 }
 \description{
 Function takes the name of a color and converts it into the rgb space. Parameter "alpha" allows
-to specify the transparency within [0,1], 0 meaning completey transparent and 1 meaning completey
-opaque. If an RGB-code is provided and alpha != 1, the RGB-code of the transparency adapted color 
+to specify the transparency within (0,1), 0 meaning completey transparent and 1 meaning completey
+opaque. If an RGB-code is provided and alpha != 1, the RGB-code of the transparency adapted color
 will be returned.
 }
 \examples{

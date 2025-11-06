@@ -18,7 +18,7 @@ addGrid(x = NULL, y = NULL, col = "lightgray", lwd = 1L, lty = 3L)
 \item{lty}{(integer) line type of grid-lines}
 }
 \description{
-It is possible to use automatically determined grid lines (\code{x=NULL, y=NULL}) or specifying the number 
+It is possible to use automatically determined grid lines (\code{x=NULL, y=NULL}) or specifying the number
 of cells \code{x = 3, y = 4} as done by \code{grid}. Additionally, x- and y-locations of grid-lines can be specified,
 e.g. \code{x = 1:10, y = seq(0,10,2)}.
 }

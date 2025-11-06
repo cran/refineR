@@ -11,7 +11,7 @@ Numeric vector with data points.
 testcase3
 }
 \description{
-This dataset consists of N = 75,000 simulated measurements with 96\% non-pathological and 4\% pathological samples. 
-Ground Truth for reference intervals (2.5\% perc., 97.5\% perc): [9.04, 13]
+This dataset consists of N = 75,000 simulated measurements with 96\\% non-pathological and 4\\% pathological samples.
+Ground Truth for reference intervals (2.5\\% perc., 97.5\\% perc): \link{9.04, 13}
 }
 \keyword{datasets}

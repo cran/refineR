@@ -20,7 +20,7 @@ and non-pathological values}
 (list) with (abEst, search region for mu and sigma)
 }
 \description{
-The function estimates the start search regions for mu and sigma for each lambda. Further it determines an appropriate 
+The function estimates the start search regions for mu and sigma for each lambda. Further it determines an appropriate
 region around the main peak 'ab' that is used for all lambdas.
 }
 \author{

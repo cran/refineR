@@ -17,8 +17,8 @@ findRI(
 and non-pathological values}
 
 \item{model}{(character) specifying the applied model (can be either "BoxCox" (default), "modBoxCoxFast" or "modBoxCox"),
-option "modBoxCoxFast" and "modBoxCox" first runs the original optimization using the Box-Cox transformation, 
-afterwards the modified Box-Cox transformation is utilized and an optimal shift is identified 
+option "modBoxCoxFast" and "modBoxCox" first runs the original optimization using the Box-Cox transformation,
+afterwards the modified Box-Cox transformation is utilized and an optimal shift is identified
 ('fast': only 1 iteration is carried out to find a shift)}
 
 \item{NBootstrap}{(integer) specifying the number of bootstrap repetitions}
@@ -31,9 +31,9 @@ afterwards the modified Box-Cox transformation is utilized and an optimal shift 
 (object) of class "RWDRI" with parameters optimized
 }
 \description{
-The function estimates the optimal parameters lambda, mu and sigma for a raw data set containing pathological 
-and non-pathological values. The optimization is carried out via a multi-level grid search to 
-minimize the cost function (negative log-likelihood with regularization) and to find a model that fits the 
+The function estimates the optimal parameters lambda, mu and sigma for a raw data set containing pathological
+and non-pathological values. The optimization is carried out via a multi-level grid search to
+minimize the cost function (negative log-likelihood with regularization) and to find a model that fits the
 distribution of the physiological values and thus separates pathological from non-pathological values.
 }
 \examples{

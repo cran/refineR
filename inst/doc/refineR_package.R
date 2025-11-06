@@ -33,7 +33,7 @@ print(fit)
 getRI(fit)
 
 ## ----plot_default, echo=TRUE--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-# plot the estimated model 
+# plot the estimated model
 plot(fit)
 
 ## ----run_refineR_bootstrap, echo=TRUE-----------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -68,7 +68,7 @@ plot(fit.bs, RIperc = c(0.025, 0.5, 0.975), pointEst = "medianBS", xlim = c(0, 1
 ## ----plot_showPathol, echo=TRUE-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # plot estimated model with bootstrapping showing the difference between raw input data and estimated model 
 # 		(i.e. 'pathological distribution'), wihtout showing the estimated reference limits
-plot(fit.bs, showPathol = TRUE, showValue = FALSE, pointEst = "medianBS", 
+plot(fit.bs, showPathol = TRUE, showValue = FALSE, pointEst = "medianBS", colScheme = "blue",
 		title = "Testcase 4 with pathological distribution")
 
 

@@ -7,7 +7,9 @@
 \method{print}{RWDRI}(
   x,
   RIperc = c(0.025, 0.975),
+  uncertaintyRegion = c("bootstrapCI", "uncertaintyMargin"),
   CIprop = 0.95,
+  UMprop = 0.9,
   pointEst = c("fullDataEst", "medianBS"),
   ...
 )
@@ -17,7 +19,11 @@
 
 \item{RIperc}{(numeric) value specifying the percentiles, which define the reference interval}
 
+\item{uncertaintyRegion}{(character) specifying the type of the uncertainty region around point estimates}
+
 \item{CIprop}{(numeric) value specifying the central region for estimation of confidence intervals}
+
+\item{UMprop}{(numeric) value specifying the central region for estimation of uncertainty margins}
 
 \item{pointEst}{(character) specifying the point estimate determination: (1) using the full dataset ("fullDataEst"),
 (2) calculating the median model from all bootstrap samples ("medianBS"), (2) works only if NBootstrap > 0}
@@ -25,10 +31,19 @@
 \item{...}{additional arguments passed forward to other functions.}
 }
 \value{
-No return value. Instead, a summary is printed.
+\if{html}{\out{<div class="sourceCode">}}\preformatted{		No return value. Instead, a summary is printed.
+}\if{html}{\out{</div>}}
 }
 \description{
 Standard print method for objects of class 'RWDRI'
+}
+\examples{
+\dontrun{
+x <- refineR::findRI(refineR::testcase1)
+print(x, uncertaintyRegion = "bootstrapCI")
+print(x, uncertaintyRegion = "uncertaintyMargin")
+}
+
 }
 \author{
 Christopher Rank \email{christopher.rank@roche.com}

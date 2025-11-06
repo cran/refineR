@@ -1,6 +1,6 @@
 ---
 title: "refineR: Reference Interval Estimation using Real-World Data (RWD)"
-author: "Tatjana Ammer & Christopher M Rank"
+author: "Tatjana Ammer, Matthias Beck, Christopher M Rank"
 date: "`r Sys.Date()`"
 
 output: 
@@ -120,7 +120,13 @@ fraction*).
 
 To calculate the estimated reference intervals, the function *getRI()* can be
 used. Per default, again the 2.5% and 97.5% percentiles are computed using the
-estimated model parameters. 
+estimated model parameters. CILow and CIHigh display the confidence intervals 
+for each reference limit, if bootstrapping was used during model estimation.
+MarginLow and MarginHigh indicate the width of the uncertainty margins around 
+the reference limits calculated with **Verus**. In short, the uncertainty 
+margins can be understood as a proxy for confidence intervals of the reference
+limits. See  the `vignette("verification")`, and
+[https://doi.org/10.1515/cclm-2025-0728] for more details.
 
 ```{r getRI_default, echo=TRUE}
 # compute reference intervals using the estimated model parameters
@@ -130,7 +136,7 @@ getRI(fit)
 We can now also take a look at the result by using the *plot()* function. 
 
 ```{r plot_default, echo=TRUE}
-# plot the estimated model 
+# plot the estimated model
 plot(fit)
 ```
 
@@ -244,6 +250,9 @@ The *plot()* function can take additional function arguments as well:
 - *xlab*			... (*character*) specifying the x-axis label
 - *ylab*			... (*character*) specifying the y-axis label
 - *title*			... (*character*) specifying plot title
+- *colScheme*		... (*character*) specifying color scheme of the
+  non-pathological distribution and reference interval; choices are "green"
+  (default) and "blue"
 
 
 
@@ -273,7 +282,7 @@ by setting *showValue* to **FALSE**.
 ```{r plot_showPathol, echo=TRUE}
 # plot estimated model with bootstrapping showing the difference between raw input data and estimated model 
 # 		(i.e. 'pathological distribution'), wihtout showing the estimated reference limits
-plot(fit.bs, showPathol = TRUE, showValue = FALSE, pointEst = "medianBS", 
+plot(fit.bs, showPathol = TRUE, showValue = FALSE, pointEst = "medianBS", colScheme = "blue",
 		title = "Testcase 4 with pathological distribution")
 
 ```

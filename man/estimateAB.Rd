@@ -11,7 +11,7 @@ estimateAB(x)
 }
 \value{
 (list) with two numeric vectors with lower and upper bound of region around the main peak used for 1) defining the search regions and
-			2) estimating the histogram with overlapping bins
+2) estimating the histogram with overlapping bins
 }
 \description{
 Helper function to find region around the main peak of a distribution

@@ -1,55 +1,76 @@
 #' Standard plot method for objects of class 'RWDRI'
 #' 
-#' @param x				(object) of class 'RWDRI'
-#' @param Scale			(character) specifying if percentiles are calculated on the original scale ("or") or the transformed scale ("tr") or the z-Score scale ("z")
-#' @param RIperc		(numeric) value specifying the percentiles, which define the reference interval (default c(0.025, 0.975))
-#' @param Nhist			(integer) number of bins in the histogram (derived automatically if not set)
-#' @param showCI		(logical) specifying if the confidence intervals are shown
-#' @param showPathol	(logical) specifying if the estimated pathological distribution shall be shown
-#' @param scalePathol	(logical) specifying if the estimated pathological distribution shall be weighted with the ration of pathol/non-pathol
-#' @param showBSModels	(logical) specifying if the estimated bootstrapping models shall be shown
-#' @param showValue		(logical) specifying if the exact value of the estimated reference intervals shall be shown above the plot 
-#' @param CIprop		(numeric) value specifying the central region for estimation of confidence intervals
-#' @param pointEst		(character) specifying the point estimate determination: (1) using the full dataset ("fullDataEst"),
-#' 						(2) calculating the median model from the bootstrap samples ("medianBS"), (2) works only if NBootstrap > 0
-#' @param xlim			(numeric) vector specifying the limits in x-direction	
-#' @param ylim			(numeric) vector specifying the limits in y-direction	
-#' @param xlab			(character) specifying the x-axis label	
-#' @param ylab			(character) specifying the y-axis label	
-#' @param title			(character) specifying plot title
-#' @param ...			additional arguments passed forward to other functions
+#' @param x					(object) of class 'RWDRI'
+#' @param Scale				(character) specifying if percentiles are shown on the original scale ("or") or the transformed scale ("tr") or the z-Score scale ("z")
+#' @param RIperc			(numeric) value specifying the percentiles, which define the reference interval (default c(0.025, 0.975))
+#' @param Nhist				(integer) number of bins in the histogram (derived automatically if not set)
+#' @param showMargin			(logical) specifying if the specified margins, i.e. confidence intervals or uncertainty margins, shall be shown
+#' @param showPathol		(logical) specifying if the estimated pathological distribution shall be shown
+#' @param scalePathol		(logical) specifying if the estimated pathological distribution shall be weighted with the ration of pathol/non-pathol
+#' @param showBSModels		(logical) specifying if the estimated bootstrapping models shall be shown
+#' @param showValue			(logical) specifying if the exact value of the estimated reference intervals shall be shown above the plot
+#' @param uncertaintyRegion	(character) specifying the type of the uncertainty region around point estimates 
+#' @param CIprop			(numeric) value specifying the central region for estimation of confidence intervals
+#' @param UMprop			(numeric) value specifying the central region for estimation of uncertainty margins
+#' @param pointEst			(character) specifying the point estimate determination: (1) using the full dataset ("fullDataEst"),
+#' 							(2) calculating the median model from the bootstrap samples ("medianBS"), (2) works only if NBootstrap > 0
+#' @param colScheme			(character) specifying color scheme of the non-pathological distribution and reference interval; choices are "green" and "blue"
+#' @param xlim				(numeric) vector specifying the limits in x-direction	
+#' @param ylim				(numeric) vector specifying the limits in y-direction	
+#' @param xlab				(character) specifying the x-axis label	
+#' @param ylab				(character) specifying the y-axis label	
+#' @param title				(character) specifying plot title
+#' @param ...				additional arguments passed forward to other functions
 #' 
-#' @return				The applied plot limits in x-direction (xlim) are returned.
+#' @return					The applied plot limits in x-direction (xlim) are returned.
 #' 
 #' @author Christopher Rank \email{christopher.rank@@roche.com}, Tatjana Ammer \email{tatjana.ammer@@roche.com}
 #' 
 #' @method plot RWDRI
 
-plot.RWDRI <- function(x, Scale = c("original", "transformed", "zScore"), RIperc = c(0.025, 0.975), Nhist = 60, showCI = TRUE, showPathol = FALSE, scalePathol = TRUE, showBSModels = FALSE, showValue = TRUE,
-		CIprop = 0.95, pointEst = c("fullDataEst", "medianBS"), xlim = NULL, ylim = NULL, xlab = NULL, ylab = NULL, title = NULL, ...) {	
+plot.RWDRI <- function(x, Scale = c("original", "transformed", "zScore"), RIperc = c(0.025, 0.975), Nhist = 60, showMargin = TRUE, showPathol = FALSE, scalePathol = TRUE, showBSModels = FALSE, showValue = TRUE,
+					   uncertaintyRegion = c("bootstrapCI", "uncertaintyMargin"), CIprop = 0.95, UMprop = 0.9, pointEst = c("fullDataEst", "medianBS"), colScheme= c("green", "blue"),
+					   xlim = NULL, ylim = NULL, xlab = NULL, ylab = NULL, title = NULL, ...) {	
 	
 	stopifnot(class(x) == "RWDRI")
 	stopifnot(!is.null(x$Data))		
 	Scale    <- match.arg(Scale[1], choices = c("original", "transformed", "zScore"))
+	uncertaintyRegion    <- match.arg(uncertaintyRegion[1], choices = c("bootstrapCI", "uncertaintyMargin"))
 	stopifnot(is.numeric(RIperc) & min(RIperc)>=0 & max(RIperc)<=1)
-	stopifnot(is.numeric(CIprop) & length(CIprop)==1 & CIprop>=0 & CIprop<=1)
 	stopifnot(is.numeric(Nhist) & Nhist%%1==0 & Nhist>0)
 	pointEst <- match.arg(pointEst[1], choices = c("fullDataEst", "medianBS"))
+	colScheme <- match.arg(colScheme[1], choices = c("green", "blue"))
 	stopifnot(is.null(xlim) | (is.numeric(xlim) & length(xlim)==2))
 	stopifnot(is.null(ylim) | (is.numeric(ylim) & length(ylim)==2))
-	stopifnot(is.logical(showCI))
+	stopifnot(is.logical(showMargin))
 	stopifnot(is.logical(showPathol))
 	stopifnot(is.logical(scalePathol))
 	stopifnot(is.logical(showBSModels))
 	stopifnot(is.logical(showValue))
-	
+
+	if(uncertaintyRegion == "bootstrapCI"){
+		stopifnot(is.numeric(CIprop), length(CIprop)==1, CIprop>=0, CIprop<=1)
+	}
+
+	args <- list(...)
+	asymmetryCorr <- TRUE
+	if("asymmetryCorr" %in% names(args) && !(args$asymmetryCorr)){
+		asymmetryCorr <- args$asymmetryCorr
+	}
+
+	n <- 120
+	if("n" %in% names(args) && is.numeric(args$n) && length(args$n) == 1 && args$n > 0)
+	{
+		n <- args$n
+	}
+
 	modelFound   <- (!is.na(x$Mu) & !is.na(x$Sigma) & !is.na(x$Lambda) & !is.na(x$Shift))
 	BSPerformed  <- (modelFound & length(x$MuBS) > 0 & length(x$SigmaBS) > 0 & length(x$LambdaBS) > 0 & length(x$ShiftBS) > 0)
 	showBSModels <- ifelse(BSPerformed & Scale=="original", showBSModels, FALSE)
-	
+
 	# extract binned data
-	Data <- x$Data		
-	
+	Data <- x$Data
+
 	# extract model parameters
 	if(modelFound)
 	{
@@ -61,10 +82,19 @@ plot.RWDRI <- function(x, Scale = c("original", "transformed", "zScore"), RIperc
 	}
 	
 	# calculate reference intervals
-	RI <- getRI(x = x, RIperc = RIperc, CIprop = CIprop, pointEst = pointEst, Scale = Scale)
+	if(uncertaintyRegion == "uncertaintyMargin"){
+		stopifnot(is.numeric(UMprop), length(UMprop)==1, UMprop>=0, UMprop<=1)
+		RI <- getRI(x = x, RIperc = RIperc, CIprop = CIprop, UMprop = UMprop, pointEst = pointEst, Scale = Scale, UCMargins=TRUE, asymmetryCorr = asymmetryCorr, n = n)
+	} else if(uncertaintyRegion == "bootstrapCI"){
+		RI <- getRI(x = x, RIperc = RIperc, CIprop = CIprop, pointEst = pointEst, Scale = Scale, UCMargins=FALSE)
+	} 
 	
-	if (is.null(xlab))	
+	if (is.null(xlab) & Scale=="original")
 		xlab <- "Concentration [Units]"
+	else if (is.null(xlab) & Scale=="transformed")	
+		xlab <- "Transformed Scale"
+	else if (is.null(xlab) & Scale=="zScore")	
+		xlab <- "z-Score"		
 	
 	if (is.null(ylab))	
 		ylab <- "Frequency"
@@ -94,11 +124,11 @@ plot.RWDRI <- function(x, Scale = c("original", "transformed", "zScore"), RIperc
 		} else
 		{				
 			# calculate skewness of distribution
-			skewnessRatio <- diff(getRI(x, RIperc=c(0.025, 0.5, 0.975))$PointEst)
+			skewnessRatio <- diff(getRI(x, RIperc=c(0.025, 0.5, 0.975), UCMargins=FALSE, pointEst = pointEst)$PointEst)
 			skewnessRatio <- min(1, sqrt(skewnessRatio[1]/skewnessRatio[2]))
 			
 			# estimate appropriate concentration range for distribution
-			perc595 <- getRI(x, RIperc=c(0.05, 0.95-0.04*(1-skewnessRatio)))$PointEst	
+			perc595 <- getRI(x, RIperc=c(0.05, 0.95-0.04*(1-skewnessRatio)), UCMargins=FALSE, pointEst = pointEst)$PointEst
 			rangeData <- perc595 + c(-1, 1)*1.05*diff(perc595)
 			
 			# determine appropriate min and max of dataset
@@ -125,7 +155,11 @@ plot.RWDRI <- function(x, Scale = c("original", "transformed", "zScore"), RIperc
 		rangePE <- range(RI$PointEst)
 		rangePE <- rangePE + c(-0.06, 0.06)*diff(rangePE)
 		
-		rangeCI	<- range(RI$CILow, RI$CIHigh)
+		if(uncertaintyRegion == "bootstrapCI")
+			rangeCI	<- range(RI$CILow, RI$CIHigh)
+		else
+			rangeCI	<- range(RI$UMLow, RI$UMHigh)
+				
 		rangeCI <- rangeCI + c(-0.03, 0.03)*diff(rangeCI)
 		
 		xlim <- range(rangeData, rangePE, rangeCI, na.rm=TRUE)
@@ -255,6 +289,11 @@ plot.RWDRI <- function(x, Scale = c("original", "transformed", "zScore"), RIperc
 		ylim[1] <- 0.03*ylim[2]
 	}	
 	
+	if (colScheme == "green")
+		nonPatholCol <- c(as.rgb("green3"), as.rgb("green2", 0.20))
+	else if (colScheme == "blue")
+		nonPatholCol <- c(as.rgb("blue2"), as.rgb("royalblue3", 0.25))
+	
 	plot(hist1, freq = TRUE, border = NA, col = "grey80", main = title, xaxt = 'n', yaxt = 'n', xlab = xlab, ylab = ylab, xlim = xlim, ylim = ylim, cex.main = 1.3, cex.lab = 1.05)
 	
 	axis(1, at = pretty(xlim, n = 10), cex.axis = 0.85)
@@ -264,7 +303,7 @@ plot.RWDRI <- function(x, Scale = c("original", "transformed", "zScore"), RIperc
 	if (showBSModels) {
 		for (i in 1:length(x$MuBS)) {
 			
-			lines(x = mids, y = countsPredBS[, i], lwd = 2, col = as.rgb("green3", min(0.25, 4/length(x$MuBS))))			
+			lines(x = mids, y = countsPredBS[, i], lwd = 2, col = as.rgb(nonPatholCol[1], min(0.25, 4/length(x$MuBS))))			
 		}		
 	}
 	
@@ -275,11 +314,13 @@ plot.RWDRI <- function(x, Scale = c("original", "transformed", "zScore"), RIperc
 		
 		# add curve of non-pathological distribution
 		if(!showBSModels)
-			lines(x = mids, y = countsPred, lwd = 2, col = "green3")
+			lines(x = mids, y = countsPred, lwd = 2, col = nonPatholCol[1])
 		
 		# add curve of pathological distribution
 		if(showPathol & !showBSModels)
-			lines(mids, countsDiff, col = "red4", lwd = 1.5)
+			lines(mids, countsDiff, col = "red3", lwd = 2)
+		if(showPathol & showBSModels)
+			warning("showPathol is set to TRUE, but showBSModels is also set to TRUE. The pathological distribution will not be shown in this case.")
 	}
 	
 	addGrid(pretty(xlim, n = 10), pretty(ylim), col = "grey90")
@@ -288,11 +329,14 @@ plot.RWDRI <- function(x, Scale = c("original", "transformed", "zScore"), RIperc
 	# add confidence intervals
 	if (modelFound)	{
 		for (i in 1:length(RIperc)) {
-			if (showCI & !is.na(RI$CILow[i]) & !is.na(RI$CIHigh[i]))		
-				rect(RI$CILow[i],  -1e3, RI$CIHigh[i], 1e9, col = as.rgb("green2", 0.20), border = NA)		
+			if (showMargin & uncertaintyRegion=="bootstrapCI" & !is.na(RI$CILow[i]) & !is.na(RI$CIHigh[i]))		
+				rect(RI$CILow[i],  -1e3, RI$CIHigh[i], 1e9, col = nonPatholCol[2], border = NA)	
+			
+			if (showMargin & uncertaintyRegion=="uncertaintyMargin" & !is.na(RI$UMLow[i]) & !is.na(RI$UMHigh[i]))		
+				rect(RI$UMLow[i],  -1e3, RI$UMHigh[i], 1e9, col = nonPatholCol[2], border = NA)			
 		}	
 		
-		abline(v = RI$PointEst, lwd = 2, lty = 2, col = "green3")	
+		abline(v = RI$PointEst, lwd = 2, lty = 2, col = nonPatholCol[1])	
 			
 		selection <- which(RI$PointEst>par("usr")[1] & RI$PointEst<par("usr")[2])
 		
@@ -302,7 +346,7 @@ plot.RWDRI <- function(x, Scale = c("original", "transformed", "zScore"), RIperc
 			adjust[RI$Percentile < 0.5] <- 1
 			adjust[RI$Percentile > 0.5] <- 0
 			
-			mtext(text = signif(RI$PointEst[selection], 3), at = RI$PointEst[selection], col = "green3", cex = 1.0, adj = adjust[selection])
+			mtext(text = signif(RI$PointEst[selection], 3), at = RI$PointEst[selection], col = nonPatholCol[1], cex = 1.0, adj = adjust[selection])
 		}			
 	}
 	
@@ -354,7 +398,7 @@ addGrid <- function(x = NULL, y = NULL, col = "lightgray", lwd = 1L, lty = 3L) {
 #' Convert color-names or RGB-code to possibly semi-transparent RGB-code.
 #' 
 #' Function takes the name of a color and converts it into the rgb space. Parameter "alpha" allows
-#' to specify the transparency within [0,1], 0 meaning completey transparent and 1 meaning completey
+#' to specify the transparency within (0,1), 0 meaning completey transparent and 1 meaning completey
 #' opaque. If an RGB-code is provided and alpha != 1, the RGB-code of the transparency adapted color 
 #' will be returned.
 #' 

@@ -9,13 +9,16 @@
   Scale = c("original", "transformed", "zScore"),
   RIperc = c(0.025, 0.975),
   Nhist = 60,
-  showCI = TRUE,
+  showMargin = TRUE,
   showPathol = FALSE,
   scalePathol = TRUE,
   showBSModels = FALSE,
   showValue = TRUE,
+  uncertaintyRegion = c("bootstrapCI", "uncertaintyMargin"),
   CIprop = 0.95,
+  UMprop = 0.9,
   pointEst = c("fullDataEst", "medianBS"),
+  colScheme = c("green", "blue"),
   xlim = NULL,
   ylim = NULL,
   xlab = NULL,
@@ -27,13 +30,13 @@
 \arguments{
 \item{x}{(object) of class 'RWDRI'}
 
-\item{Scale}{(character) specifying if percentiles are calculated on the original scale ("or") or the transformed scale ("tr") or the z-Score scale ("z")}
+\item{Scale}{(character) specifying if percentiles are shown on the original scale ("or") or the transformed scale ("tr") or the z-Score scale ("z")}
 
 \item{RIperc}{(numeric) value specifying the percentiles, which define the reference interval (default c(0.025, 0.975))}
 
 \item{Nhist}{(integer) number of bins in the histogram (derived automatically if not set)}
 
-\item{showCI}{(logical) specifying if the confidence intervals are shown}
+\item{showMargin}{(logical) specifying if the specified margins, i.e. confidence intervals or uncertainty margins, shall be shown}
 
 \item{showPathol}{(logical) specifying if the estimated pathological distribution shall be shown}
 
@@ -43,10 +46,16 @@
 
 \item{showValue}{(logical) specifying if the exact value of the estimated reference intervals shall be shown above the plot}
 
+\item{uncertaintyRegion}{(character) specifying the type of the uncertainty region around point estimates}
+
 \item{CIprop}{(numeric) value specifying the central region for estimation of confidence intervals}
+
+\item{UMprop}{(numeric) value specifying the central region for estimation of uncertainty margins}
 
 \item{pointEst}{(character) specifying the point estimate determination: (1) using the full dataset ("fullDataEst"),
 (2) calculating the median model from the bootstrap samples ("medianBS"), (2) works only if NBootstrap > 0}
+
+\item{colScheme}{(character) specifying color scheme of the non-pathological distribution and reference interval; choices are "green" and "blue"}
 
 \item{xlim}{(numeric) vector specifying the limits in x-direction}
 
@@ -61,7 +70,8 @@
 \item{...}{additional arguments passed forward to other functions}
 }
 \value{
-The applied plot limits in x-direction (xlim) are returned.
+\if{html}{\out{<div class="sourceCode">}}\preformatted{			The applied plot limits in x-direction (xlim) are returned.
+}\if{html}{\out{</div>}}
 }
 \description{
 Standard plot method for objects of class 'RWDRI'

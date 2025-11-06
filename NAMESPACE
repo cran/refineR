@@ -6,7 +6,9 @@ export(
 	"getRI",
 	"findRI", 
 	"BoxCox",
-	"invBoxCox"
+	"invBoxCox",
+	"verifyRI",
+	"getRISimilarity"
 )
 
 
